@@ -1,0 +1,2287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Starter Slot prototype, single-file build 2026-11-16. Built from https://github.com/fxdarshan/slot-starter-template -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starter Slot Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&family=Lilita+One&family=Outfit:wght@500;600;700&family=Pacifico&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Layout: game canvas fills the left, demo controls panel on the right (hide with D). */
+  --bg: #121018; --panel: #1a1722; --raise: #24202e; --line: #34303f;
+  --text: #ece8f4; --muted: #9a93ab; --accent: #c6a6ff; --accent-ink: #1c1030; --rec: #ff5468;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--text); font: 14px/1.45 var(--f-body); }
+button, input, select { font: inherit; color: inherit; }
+.app { height: 100%; display: grid; grid-template-columns: 1fr 340px; }
+.app.no-panel { grid-template-columns: 1fr; }
+.app.no-panel .panel { display: none; }
+.stage-wrap { min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 12px; }
+canvas#stage { display: block; border-radius: 6px; box-shadow: 0 12px 40px rgba(0,0,0,.5); cursor: pointer; touch-action: manipulation; }
+.panel { background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+.panel header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.panel h1 { font-size: 15px; margin: 0; font-weight: 600; }
+.scroll { overflow: auto; padding: 4px 16px 24px; }
+section { padding: 6px 0 12px; border-bottom: 1px solid var(--line); }
+section:last-child { border-bottom: 0; }
+h2 { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; font-weight: 600; }
+.hint { color: var(--muted); font-size: 12.5px; margin: 0 0 8px; }
+.info { font-size: 12.5px; color: var(--muted); margin: 6px 0; font-variant-numeric: tabular-nums; }
+.info b { color: var(--text); }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+.grow { flex: 1; }
+button { background: var(--raise); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+button:hover { border-color: #4b4559; }
+button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+button.ghost { background: transparent; }
+button.small { padding: 4px 9px; font-size: 12.5px; }
+button.rec { color: #ffb6bf; border-color: #5a2a33; }
+button.rec.on { background: var(--rec); border-color: var(--rec); color: #fff; }
+select { background: var(--raise); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+.queue { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; counter-reset: q; }
+.queue li { display: flex; align-items: center; gap: 8px; background: var(--raise); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px 4px 8px; counter-increment: q; font-size: 13px; }
+.queue li::before { content: counter(q); font-family: var(--f-mono); font-size: 11px; color: var(--muted); width: 14px; }
+.queue li .lbl { flex: 1; display: flex; align-items: center; gap: 8px; }
+.queue li button { padding: 1px 7px; background: transparent; border-color: transparent; color: var(--muted); font-size: 12px; }
+.queue li.empty { border-style: dashed; color: var(--muted); }
+.queue li.empty::before { content: none; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.adds { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 8px; }
+.adds button { display: flex; align-items: center; gap: 7px; font-size: 12.5px; text-align: left; padding: 6px 8px; }
+.palette { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-bottom: 6px; }
+.palette button, .grid-ed button { padding: 1px; aspect-ratio: 1; border-radius: 6px; background: #120f18; display: flex; align-items: center; justify-content: center; }
+.palette img, .grid-ed img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.palette button[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.grid-ed { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; padding: 5px; background: #0e0c13; border: 1px solid var(--line); border-radius: 8px; }
+.grid-ed button.wild-col { background: #1d1726; }
+label.f { display: block; width: 100%; font-size: 13px; }
+label.f select, label.f input[type=range] { width: 100%; margin-top: 4px; accent-color: var(--accent); }
+label.f output { float: right; font-family: var(--f-mono); color: var(--accent); font-size: 12px; }
+.mono { font-family: var(--f-mono); font-size: 12px; }
+#recTime { color: var(--rec); }
+#recOut video { width: 100%; border-radius: 8px; margin-top: 8px; background: #000; }
+#recOut a { display: inline-block; margin-top: 8px; color: var(--accent); }
+.small-list { margin: 6px 0 0; padding-left: 18px; color: var(--muted); max-height: 180px; overflow: auto; }
+details summary { cursor: pointer; font-size: 12.5px; color: var(--muted); }
+.show-panel { position: fixed; right: 12px; top: 12px; opacity: .6; }
+.show-panel:hover { opacity: 1; }
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; grid-template-rows: auto auto; height: auto; }
+  .stage-wrap { height: 60vh; }
+  .panel { border-left: 0; border-top: 1px solid var(--line); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* ---------- cheats (DOM over the canvas, so never in recordings) ---------- */
+.stage-wrap { position: relative; }
+.scenarios { display: flex; flex-direction: column; gap: 4px; }
+.scen { display: flex; align-items: center; gap: 6px; background: var(--raise); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px 4px 10px; font-size: 13px; }
+.scen span { flex: 1; }
+.cheat-btn { position: absolute; left: 20px; top: 18px; z-index: 5; font-size: 12.5px; padding: 5px 10px; background: rgba(20,16,28,.78); border-color: rgba(255,255,255,.18); opacity: .75; }
+.cheat-btn:hover, .cheat-btn.on { opacity: 1; border-color: var(--accent); }
+.cheat-menu { position: absolute; left: 20px; top: 56px; z-index: 6; width: min(560px, calc(100% - 40px)); max-height: calc(100% - 80px); overflow: auto;
+  background: rgba(22,18,30,.96); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; box-shadow: 0 16px 40px rgba(0,0,0,.6); }
+.cheat-menu header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+.cheat-menu header span { flex: 1; color: var(--muted); font-size: 12px; }
+.cheat-menu header .x { padding: 2px 8px; background: transparent; border-color: transparent; color: var(--muted); }
+.cheat-menu h4 { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 10px 0 6px; font-weight: 600; }
+.cheat-menu .row { display: flex; align-items: center; gap: 6px; padding: 6px 0; border-top: 1px solid var(--line); }
+.cheat-menu .row .t { flex: 1; min-width: 0; }
+.cheat-menu .row b { display: block; font-size: 13.5px; font-weight: 600; }
+.cheat-menu .row small { display: block; color: var(--muted); font-size: 12px; }
+.cheat-menu .row .play { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; padding: 5px 12px; }
+.cheat-menu .row .link { padding: 5px 9px; font-size: 12px; background: transparent; }
+.cheat-menu .keys { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
+.cheat-menu .keys button { text-align: left; font-size: 12.5px; padding: 5px 8px; display: flex; align-items: center; gap: 8px; }
+.cheat-menu kbd { min-width: 18px; text-align: center; }
+.cheat-menu footer { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+.cheat-menu footer button { font-size: 12px; padding: 4px 9px; }
+.cheat-menu .fine { color: var(--muted); font-size: 11.5px; margin: 8px 0 0; }
+.cheat-chip { position: absolute; left: 20px; bottom: 20px; z-index: 5; background: rgba(198,166,255,.95); color: var(--accent-ink); font-weight: 600; font-size: 12.5px; padding: 5px 10px; border-radius: 999px; }
+.cheat-toast { position: absolute; left: 50%; top: 18px; transform: translate(-50%, -8px); opacity: 0; z-index: 7; background: rgba(20,16,28,.92); border: 1px solid var(--line); padding: 7px 14px; border-radius: 10px; font-size: 13px; transition: .2s; pointer-events: none; }
+.cheat-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- splash / loading screen (DOM over the stage, never recorded) ---------- */
+.splash { --u: .5px; --fade: 700ms; position: absolute; z-index: 20; overflow: hidden; background: #1b090d; color: #ffd9df;
+  font-family: 'Outfit', 'IBM Plex Sans', system-ui, sans-serif; transition: opacity var(--fade) ease; }
+.splash[hidden] { display: none; }
+.splash.out { opacity: 0; pointer-events: none; }
+.splash .sp-bg { position: absolute; inset: 0; background: center / cover no-repeat; filter: saturate(.9); }
+.splash .sp-shade { position: absolute; inset: 0;
+  background: linear-gradient(0deg, #1b090d 0%, rgba(27,9,13,.72) 45%, rgba(27,9,13,.38) 100%), radial-gradient(ellipse at center, rgba(27,9,13,0) 25%, rgba(27,9,13,.82) 100%); }
+.splash .sp-snow { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.splash .sp-top { position: absolute; left: 0; right: 0; top: 0; display: flex; justify-content: space-between; align-items: center; padding: calc(var(--u) * 34) calc(var(--u) * 48); z-index: 3; }
+.splash .sp-brand { display: flex; align-items: center; gap: calc(var(--u) * 12); color: #ffe16d; opacity: .85; font-size: calc(var(--u) * 24); }
+.splash .sp-brand span { font-size: calc(var(--u) * 22); font-weight: 600; letter-spacing: .25em; text-transform: uppercase; }
+.splash .sp-btns { display: flex; gap: calc(var(--u) * 14); }
+.splash .sp-btn { width: calc(var(--u) * 56); height: calc(var(--u) * 56); padding: 0; border-radius: 50%; display: grid; place-items: center; font-size: calc(var(--u) * 28);
+  color: rgba(255,225,109,.85); background: rgba(27,9,13,.55); border: 1px solid rgba(255,225,109,.3); backdrop-filter: blur(6px); cursor: pointer; }
+.splash .sp-btn:hover { color: #ffe16d; border-color: rgba(255,225,109,.8); background: rgba(58,36,40,.65); }
+.splash .sp-hero { position: absolute; left: 0; right: 0; top: 0; bottom: calc(var(--u) * 150); display: grid; place-items: center; z-index: 2; }
+.splash .sp-halo { position: absolute; width: calc(var(--u) * 900); height: calc(var(--u) * 900); border-radius: 50%; filter: blur(calc(var(--u) * 80));
+  background: linear-gradient(35deg, rgba(245,158,11,.25), rgba(255,225,109,.3), rgba(225,29,72,.2)); animation: sp-halo 4s ease-in-out infinite; }
+.splash .sp-logo { position: relative; display: flex; flex-direction: column; align-items: center; animation: sp-float 5s ease-in-out infinite; }
+.splash .sp-logo img { width: calc(var(--u) * 900); max-height: calc(var(--u) * 640); object-fit: contain; filter: drop-shadow(0 calc(var(--u) * 18) calc(var(--u) * 36) rgba(0,0,0,.85)) brightness(1.05); }
+.splash .sp-title { font: calc(var(--u) * 170) 'Lilita One', 'Outfit', sans-serif; color: #ffe16d; text-shadow: 0 calc(var(--u) * 8) 0 #8a1226; }
+.splash .sp-floor { width: 66%; height: calc(var(--u) * 20); margin-top: calc(var(--u) * 4); border-radius: 50%; background: rgba(255,225,109,.35); filter: blur(calc(var(--u) * 22)); }
+.splash .sp-load { position: absolute; left: 50%; bottom: calc(var(--u) * 56); width: calc(var(--u) * 820); transform: translateX(-50%); z-index: 3; }
+.splash .sp-status { display: flex; align-items: center; gap: calc(var(--u) * 12); margin: 0 calc(var(--u) * 8) calc(var(--u) * 14); font-size: calc(var(--u) * 28); font-weight: 600; letter-spacing: .05em; color: #ffe16d; text-shadow: 0 2px 8px rgba(0,0,0,.9); }
+.splash .sp-msg { flex: 1; }
+.splash .sp-pct { font-weight: 700; letter-spacing: .1em; }
+.splash .sp-spin { width: calc(var(--u) * 20); height: calc(var(--u) * 20); border-radius: 50%; border: calc(var(--u) * 3) solid rgba(255,225,109,.3); border-top-color: #ffe16d; animation: sp-rot 1s linear infinite; }
+.splash .sp-bar { position: relative; padding: 2px; border-radius: 999px; background: linear-gradient(90deg, #ffe16d, #fde68a, #e9c400, #d97706); box-shadow: 0 0 24px rgba(255,225,109,.35), 0 8px 20px rgba(0,0,0,.9); }
+.splash .sp-trough { position: relative; padding: 2px; border-radius: 999px; background: rgba(27,9,13,.92); }
+.splash .sp-trough::before { content: ''; position: absolute; inset: 2px; border-radius: 999px; background: #1b080d; box-shadow: inset 0 2px 6px rgba(0,0,0,.95); }
+.splash .sp-fill { position: relative; height: calc(var(--u) * 34); width: 2%; border-radius: 999px; overflow: hidden; transition: width .12s linear;
+  background: linear-gradient(90deg, #b8860b 0%, #ffdb3c 45%, #fff2a8 55%, #ffe16d 80%, #d4af37 100%); box-shadow: 0 0 14px rgba(255,219,60,.85); }
+.splash .sp-sheen { position: absolute; inset: 0 auto 0 0; width: 50%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.7), transparent); animation: sp-sheen 2.5s cubic-bezier(.4,0,.2,1) infinite; }
+.splash .sp-gloss { position: absolute; inset: 0 0 50% 0; background: rgba(255,255,255,.2); border-radius: 999px 999px 0 0; }
+.splash .sp-bar u { position: absolute; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: #ffe16d; box-shadow: 0 0 6px #ffe16d; }
+.splash .sp-bar u:first-of-type { left: -4px; } .splash .sp-bar u:last-of-type { right: -4px; }
+@keyframes sp-float { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-8px) scale(1.015); } }
+@keyframes sp-halo { 0%, 100% { opacity: .55; transform: scale(.95); } 50% { opacity: .85; transform: scale(1.08); } }
+@keyframes sp-sheen { from { transform: translateX(-100%) skewX(-20deg); } to { transform: translateX(250%) skewX(-20deg); } }
+@keyframes sp-rot { to { transform: rotate(360deg); } }
+
+/* symbol-win dropdowns (cheat menu and demo panel) */
+.cheat-menu .symrow { display: flex; gap: 6px; flex-wrap: wrap; padding-top: 2px; }
+.cheat-menu .symrow select { flex: 1 1 110px; min-width: 0; }
+.panel .inline { display: flex; gap: 6px; margin-top: 4px; }
+.panel .inline select { flex: 1; min-width: 0; }
+.cheat-menu .scnote { display: block; color: var(--muted); font-size: 12px; margin-top: 6px; }
+.cheat-menu .symrow .link { padding: 5px 9px; font-size: 12px; background: transparent; }
+.panel .symrow { display: flex; }
+.panel .symrow select { flex: 1; min-width: 0; }
+
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <main class="stage-wrap" id="wrap">
+    <canvas id="stage" aria-label="Slot game"></canvas>
+  </main>
+
+  <aside class="panel" id="panel">
+    <header>
+      <h1>Demo controls</h1>
+      <button id="hidePanel" class="ghost small" title="Hide panel (D)">Hide</button>
+    </header>
+    <div class="scroll">
+      <section>
+        <h2>Scenarios</h2>
+        <p class="hint">Cheat presets. Pick one from the dropdown: <b>Play</b> runs it now; <b>Load into list</b> puts it in the list below so you can record it. In the game, press <kbd>C</kbd> for the cheat menu and hotkeys.</p>
+        <div id="scenarios" class="scenarios"></div>
+      </section>
+
+      <section>
+        <h2>Next spins</h2>
+        <p class="hint">Spins play these outcomes in order (free spins too). An empty list spins at random.</p>
+        <ol id="queue" class="queue"></ol>
+        <div class="row">
+          <button id="playQueue" class="primary">Play list</button>
+          <button id="spin">Spin once</button>
+          <span class="grow"></span>
+          <button id="clearQueue" class="ghost small">Clear</button>
+        </div>
+        <div class="adds" id="adds"></div>
+        <div class="row">
+          <label class="f">Symbol win
+            <span class="inline"><select id="swSym" aria-label="Symbol"></select><select id="swLen" aria-label="In a row"><option value="2">2 in a row</option><option value="3" selected>3 in a row</option><option value="4">4 in a row</option><option value="5">5 in a row</option></select></span>
+          </label>
+          <button id="swAdd" class="small">Add to list</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Custom grid</h2>
+        <p class="hint">Pick a symbol and click cells. The Scatter is Wild and Scatter. Choose a special symbol to preview a free spin's expansion; in the list the grid plays as whatever spin it lands on (base or free).</p>
+        <div id="palette" class="palette"></div>
+        <div id="gridEd" class="grid-ed"></div>
+        <div class="row">
+          <label class="f">Preview as
+            <select id="edSpecial"></select>
+          </label>
+        </div>
+        <p id="edInfo" class="info"></p>
+        <div class="row"><button id="addCustom" class="small">Add to list</button><button id="copyBoard" class="ghost small">Copy current reels</button></div>
+      </section>
+
+      <section>
+        <h2>Record video</h2>
+        <div class="row">
+          <select id="recMode" aria-label="Recording mode">
+            <option value="spin">Next spin</option>
+            <option value="queue">Whole list</option>
+            <option value="manual">Manual start / stop</option>
+          </select>
+          <button id="rec" class="rec">● Record</button>
+          <span id="recTime" class="mono"></span>
+        </div>
+        <div id="recOut"></div>
+      </section>
+
+      <section>
+        <h2>Speed</h2>
+        <label class="f">Presentation speed <output id="speedOut">1×</output>
+          <input type="range" id="speed" min="0.5" max="3" step="0.25" value="1">
+        </label>
+      </section>
+
+      <section>
+        <h2>Assets</h2>
+        <p id="assetInfo" class="hint"></p>
+        <div class="row"><button id="replaySplash" class="small">Replay splash screen</button></div>
+        <details><summary>Files still using placeholders</summary><ul id="assetList" class="mono small-list"></ul></details>
+      </section>
+    </div>
+  </aside>
+  <button id="showPanel" class="show-panel" hidden>Demo controls</button>
+</div>
+
+<script>
+/* src/config.js */
+/*
+ * Game configuration: maths, animation timing and presentation switches.
+ * The engine (engine.js) reads only this object, so the same file drives the
+ * browser game and the Node simulator (tools/simulate.js).
+ *
+ * SAMPLE GAME. The template ships with a working book-style game so everything runs on day one:
+ * the features and maths of Pragmatic Play's "John Hunter and the Book of Tut" (docs/reference-game.md):
+ *   5x3, 10 fixed lines, 96.50% RTP, Scatter = Wild + Scatter (the "book"),
+ *   3+ scatters = 10 free spins with one random expanding symbol, unlimited retriggers.
+ * For a new game: replace the values below from docs/ (see NEW_GAME.md), mark every value that is not
+ * in the specs ASSUMED or TUNED, and re-tune with tools/simulate.js.
+ *
+ * Sources:
+ *   REF    docs/reference-game.md      (published facts of the reference game, with links)
+ *   RULES  docs/official-game-rules.md (the game's rules, written from REF)
+ *   PAY    docs/pay-table.md
+ *   ASSUMED  not published for the reference game; chosen here and listed in the README
+ *   TUNED    not published; tuned with tools/simulate.js to hit the published RTP
+ */
+(function (root) {
+  const CONFIG = {
+    title: 'Starter Slot',
+    // short theme texts used by the splash screen, modals and rules screen
+    texts: {
+      brand: 'Starter Slot',                        // small line on the splash screen
+      loading: ['Shuffling the Reels...', 'Polishing the Symbols...', 'Counting the Coins...', 'Lighting the Lights...'],
+      retrigger: 'MORE FREE SPINS!',               // retrigger modal title
+      expandedPanel: ['#7fd0ff', '#bfe9ff', '#ffffff']   // sky behind sym_00_expanded art (top to bottom)
+    },
+
+    // ---------------------------------------------------------------- grid (REF: 5 reels x 3 rows)
+    reels: 5,
+    rows: 3,
+
+    // Symbol ids: 0 = highest paying. SCATTER is the "book": wild and scatter at once.
+    regular: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    SCATTER: 11,
+    symbolNames: {
+      0: 'Crown', 1: 'Ruby', 2: 'Emerald', 3: 'Sapphire', 4: 'Gold Bar', 5: 'Coins',
+      6: 'A', 7: 'K', 8: 'Q', 9: 'J', 10: '10', 11: 'Scatter'
+    },
+    // the reference game's symbol each one plays the part of
+    refSymbol: { 0: 'John Hunter', 1: 'Tutankhamun mask', 2: 'Cat', 3: 'Scarab', 4: '(none: extra)', 5: '(none: extra)', 6: 'A', 7: 'K', 8: 'Q', 9: 'J', 10: '10', 11: 'Book of Tut' },
+
+    // ------------------------------------------------------------ paylines (REF: 10 fixed lines)
+    // Row index per reel: 0 Top, 1 Middle, 2 Bottom. ASSUMED: the classic 10-line book-slot layout
+    // (the reference game's line shapes are not published in the sources found).
+    paylines: [
+      [1, 1, 1, 1, 1],  //  1 middle
+      [0, 0, 0, 0, 0],  //  2 top
+      [2, 2, 2, 2, 2],  //  3 bottom
+      [0, 1, 2, 1, 0],  //  4 V
+      [2, 1, 0, 1, 2],  //  5 inverted V
+      [1, 2, 2, 2, 1],  //  6
+      [1, 0, 0, 0, 1],  //  7
+      [2, 2, 1, 0, 0],  //  8
+      [0, 0, 1, 2, 2],  //  9
+      [2, 1, 1, 1, 0]   // 10
+    ],
+
+    // ------------------------------------------------------------ paytable (REF, x TOTAL bet for one line)
+    // Line wins pay left to right on adjacent reels, highest win per line.
+    paytable: {
+      0:  { 2: 1,   3: 10,  4: 100, 5: 500 },  // Crown    = John Hunter
+      1:  { 2: 0.5, 3: 4,   4: 40,  5: 200 },  // Ruby     = Tutankhamun mask
+      2:  { 2: 0.5, 3: 3,   4: 10,  5: 75 },   // Emerald  = Cat
+      3:  { 2: 0.5, 3: 3,   4: 10,  5: 75 },   // Sapphire = Scarab
+      4:  { 3: 1,   4: 5,   5: 25 },           // Gold Bar ASSUMED (extra symbol, no reference value)
+      5:  { 3: 1,   4: 5,   5: 25 },           // Coins    ASSUMED (extra symbol, no reference value)
+      6:  { 3: 0.5, 4: 4,   5: 15 },           // A
+      7:  { 3: 0.5, 4: 4,   5: 15 },           // K
+      8:  { 3: 0.5, 4: 2.5, 5: 10 },           // Q
+      9:  { 3: 0.5, 4: 2.5, 5: 10 },           // J
+      10: { 3: 0.5, 4: 2.5, 5: 10 }            // 10
+    },
+    scatterPays: { 3: 2, 4: 20, 5: 200 },      // REF: 3 / 4 / 5 books pay 2x / 20x / 200x total bet, anywhere
+
+    // Symbol weights per reel for random stops (TUNED). Each cell is drawn independently.
+    // Rows: reel 1..5. Columns: symbol id 0..11 (11 = Scatter).
+    weights: [
+      [4.6, 5.8, 7.5, 7.5, 7, 7, 10, 10, 10.5, 10.5, 10.5, 2.4],
+      [4.6, 5.8, 7.5, 7.5, 7, 7, 10, 10, 10.5, 10.5, 10.5, 2.4],
+      [4.6, 5.8, 7.5, 7.5, 7, 7, 10, 10, 10.5, 10.5, 10.5, 2.4],
+      [4.6, 5.8, 7.5, 7.5, 7, 7, 10, 10, 10.5, 10.5, 10.5, 2.4],
+      [4.6, 5.8, 7.5, 7.5, 7, 7, 10, 10, 10.5, 10.5, 10.5, 2.4]
+    ],
+    // Free spins use their own weights (TUNED): fewer scatters, so retriggers are rarer.
+    weightsFreeSpins: null,                    // null = same as base
+    specialBoost: 1.33,                         // free spins: the special symbol's weight is multiplied by this (TUNED)
+
+    // ---------------------------------------------------------- free spins (REF)
+    freeSpins: 10,                             // 3+ scatters award 10 free spins
+    freeSpinsRetrigger: 10,                    // 3+ scatters during free spins add 10 more, no limit
+    // Which symbol becomes the expanding symbol (TUNED weights; REF: "one regular symbol chosen at random")
+    specialWeights: { 0: 6, 1: 8, 2: 9, 3: 9, 4: 9, 5: 9, 6: 10, 7: 10, 8: 10, 9: 10, 10: 10 },
+    // The special symbol expands when it is on enough reels to win (2 for symbols that pay 2 of a kind,
+    // else 3), anywhere on those reels, and then pays on every line regardless of adjacency (REF).
+    expandPaysAllLines: true,
+
+    maxWin: 5500,                              // REF (pragmaticplay.com): 5,500x per round. Reviews say 5,000x.
+
+    // ---------------------------------------------------------------- money (REF: 0.10 to 100 per spin)
+    bets: [0.10, 0.20, 0.50, 1, 2, 5, 9, 10, 20, 50, 100],
+    defaultBetIndex: 6,                        // 9.00
+    startBalance: 500,
+    currency: '$',
+
+    // ---------------------------------------------------------- big win banners (ASSUMED thresholds, x total bet)
+    winTiers: [
+      { id: 'nice',        min: 10,  label: 'NICE WIN!',        colors: ['#fff4d0', '#f2b632', '#a8320c'], fx: 'fountain' },
+      { id: 'big',         min: 20,  label: 'BIG WIN!',         colors: ['#ffffff', '#ffd25a', '#c2281a'], fx: 'drop' },
+      { id: 'mega',        min: 50,  label: 'MEGA WIN!',        colors: ['#fff4c2', '#f2b632', '#b0102a'], fx: 'cascade' },
+      { id: 'superb',      min: 100, label: 'SUPERB WIN!',      colors: ['#fff2d8', '#ff9a3a', '#b0102a'], fx: 'fireworks' },
+      { id: 'sensational', min: 250, label: 'SENSATIONAL WIN!', colors: ['#fff0f0', '#ff5a5a', '#e8b23a'], fx: 'lasers' },
+      { id: 'epic',        min: 500, label: 'EPIC WIN!',        colors: ['#ffffff', '#ffe27a', '#d6202f'], fx: 'epic' }
+    ],
+
+    // ------------------------------------------------------- animation timing (ASSUMED, frames at 30 fps)
+    splash: { enabled: true, minMs: 2600, fadeMs: 700 },
+    fps: 30,
+    frames: {
+      bgBaseLoop: 120,                  // background breathing
+      symWin: [10, 20, 15],             // winning symbol: pop, hold, settle
+      lineCycle: 36,                    // each line shown on its own after the all-lines view
+      scatterLand: 12,                  // scatter squash when it lands
+      fuse: [24, 18, 18],               // trigger: fuse unrolls down the reel, crackers pop, settle
+      pick: [90, 30],                   // special symbol pick: symbols cycle and slow down, then hold
+      expand: [12, 24, 12],             // expanding symbol: flash, grow to the full reel, settle
+      expandLines: 45,                  // all 10 lines shown over the expanded reels
+      anticipation: 45,                 // extra spin time on each reel after 2 scatters have landed
+      banner: [30, 90, 30],             // modals and big win banners
+      bannerTally: [30, 105],
+      summaryTally: 75,
+      transToFree: [15, 45, 15],
+      transToBase: 60
+    },
+    anticipate: true,                   // slow the remaining reels when 2 scatters are showing
+    autoContinueModals: true,           // START / COLLECT continue by themselves after the hold
+
+    spin: { first: 1.0, gap: 0.18, speed: 22, bounce: 1.2 },
+
+    // Layout in stage pixels (1920 x 1080): where the reels sit on the background art.
+    // Measure the reel area on bg_base_main (after import) and set it here; cells are w/reels x h/rows.
+    stage: { landscape: [1920, 1080] },
+    window: { x: 214.7, y: 138.7, w: 1488.6, h: 776.9 },
+    hudTop: 944,                        // the bottom bar starts here (mockup y 1940)
+    message: 'DEMO GAME IS ACTIVE'      // the message pill above the bar
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = CONFIG;
+  else root.CONFIG = CONFIG;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* assets/manifest.js */
+/*
+ * ASSET MANIFEST
+ * ---------------------------------------------------------------------------
+ * Every image and sound, keyed by asset ID. Paths follow one rule:
+ *   assets/images/<folder>/<asset id>.<webp|jpg>
+ * so art dropped into art/ with the asset ID as its file name is imported by
+ * tools/asset-pipeline/import_art.py with no edits here. Missing files keep the
+ * code-drawn placeholder (src/placeholders.js), so art can arrive one file at a time.
+ *
+ * Sizes (after import_art.py):
+ *   bg_*_main ........ 1920 x 1080 JPG; the reel window is CONFIG.window (default x 215-1703, y 139-916)
+ *   sym_*_idle ....... about 600 px wide, transparent, trimmed; fitted into the cell with the box in `fit`
+ *   sym_00_expanded .. optional full-reel art for symbol 0 when it expands (else the symbol is stacked)
+ *   fx_scatter_full .. full-reel Scatter, revealed down the reel when free spins trigger
+ *   fx_lantern ....... small hanging decoration for anticipation and modals (any themed object)
+ *   banner_win_* ..... title art above the amount (code-drawn ribbon when missing)
+ *
+ * Sounds: MP3 or WAV. They only load when the game is served over http(s). Without files,
+ * synthesised placeholder sounds play.
+ */
+window.ASSET_MANIFEST = {
+  // fitting box per symbol, [width, height] as a fraction of the cell; art may overflow the cell a little
+  fit: {
+    default:          [0.98, 1.06],
+    sym_scatter_idle: [1.00, 1.08],
+    sym_06_idle: [0.80, 0.86], sym_07_idle: [0.80, 0.86], sym_08_idle: [0.80, 0.86], sym_09_idle: [0.80, 0.86], sym_10_idle: [0.86, 0.80]
+  },
+
+  images: {
+    bg_base_main:           'assets/images/environment/bg_base_main.jpg',
+    bg_freegame_main:       'assets/images/environment/bg_freegame_main.jpg',
+
+    sym_00_idle:            'assets/images/symbols/sym_00_idle.webp',
+    sym_00_expanded:        'assets/images/symbols/sym_00_expanded.webp',
+    sym_01_idle:            'assets/images/symbols/sym_01_idle.webp',
+    sym_02_idle:            'assets/images/symbols/sym_02_idle.webp',
+    sym_03_idle:            'assets/images/symbols/sym_03_idle.webp',
+    sym_04_idle:            'assets/images/symbols/sym_04_idle.webp',
+    sym_05_idle:            'assets/images/symbols/sym_05_idle.webp',
+    sym_06_idle:            'assets/images/symbols/sym_06_idle.webp',
+    sym_07_idle:            'assets/images/symbols/sym_07_idle.webp',
+    sym_08_idle:            'assets/images/symbols/sym_08_idle.webp',
+    sym_09_idle:            'assets/images/symbols/sym_09_idle.webp',
+    sym_10_idle:            'assets/images/symbols/sym_10_idle.webp',
+    sym_scatter_idle:       'assets/images/symbols/sym_scatter_idle.webp',
+
+    fx_scatter_full:        'assets/images/fx/fx_scatter_full.webp',
+    fx_lantern:             'assets/images/fx/fx_lantern.webp',
+
+    banner_win_nice:        'assets/images/banners/banner_win_nice.webp',
+    banner_win_big:         'assets/images/banners/banner_win_big.webp',
+    banner_win_mega:        'assets/images/banners/banner_win_mega.webp',
+    banner_win_superb:      'assets/images/banners/banner_win_superb.webp',
+    banner_win_sensational: 'assets/images/banners/banner_win_sensational.webp',
+    banner_win_epic:        'assets/images/banners/banner_win_epic.webp',
+
+    ui_splash_logo:         'assets/images/ui/ui_splash_logo.webp'
+  },
+
+  sounds: {
+    bgm_basegame_loop:      'assets/audio/bgm_basegame_loop.mp3',
+    bgm_freegame_loop:      'assets/audio/bgm_freegame_loop.mp3',
+    sfx_spin_button_click:  'assets/audio/sfx_spin_button_click.mp3',
+    sfx_reel_spin:          'assets/audio/sfx_reel_spin.mp3',
+    sfx_reel_stop_01:       'assets/audio/sfx_reel_stop_01.mp3',
+    sfx_reel_stop_02:       'assets/audio/sfx_reel_stop_02.mp3',
+    sfx_reel_stop_03:       'assets/audio/sfx_reel_stop_03.mp3',
+    sfx_reel_stop_04:       'assets/audio/sfx_reel_stop_04.mp3',
+    sfx_reel_stop_05:       'assets/audio/sfx_reel_stop_05.mp3',
+    sfx_scatter_land:       'assets/audio/sfx_scatter_land.mp3',
+    sfx_scatter_win:        'assets/audio/sfx_scatter_win.mp3',
+    sfx_fuse:               'assets/audio/sfx_fuse.mp3',
+    sfx_cracker_pop:        'assets/audio/sfx_cracker_pop.mp3',
+    sfx_pick_tick:          'assets/audio/sfx_pick_tick.mp3',
+    sfx_pick_stop:          'assets/audio/sfx_pick_stop.mp3',
+    sfx_expand_flash:       'assets/audio/sfx_expand_flash.mp3',
+    sfx_expand:             'assets/audio/sfx_expand.mp3',
+    sfx_symbol_win_line:    'assets/audio/sfx_symbol_win_line.mp3',
+    sfx_countup_loop:       'assets/audio/sfx_countup_loop.mp3',
+    sfx_countup_end:        'assets/audio/sfx_countup_end.mp3',
+    banner_hit:             'assets/audio/banner_hit.mp3'
+  }
+};
+
+</script>
+<script>
+/* src/engine.js */
+/*
+ * Game engine: pure maths, no drawing. Follows docs/official-game-rules.md
+ * (the features and maths of "John Hunter and the Book of Tut", see docs/reference-game.md).
+ *
+ * resolveSpin(grid, opts) takes the stopped reels and returns a list of steps:
+ *   win      line wins, left to right on adjacent reels; the Scatter substitutes as a Wild.
+ *            Only the highest win per line is paid.
+ *   scatter  3+ Scatters anywhere pay 2x / 20x / 200x total bet and award (or add) 10 free spins
+ *   expand   free spins only: the special symbol is on enough reels to win, expands to fill
+ *            those reels and pays on all 10 lines, adjacent or not (paid on top of the line wins)
+ * The renderer plays these steps in order, so what you see is what the maths decided.
+ *
+ * Grid format: grid[reel][row] = symbol id (0..10 regular, 0 highest; 11 Scatter).
+ * Works in the browser (window.Engine) and in Node (require('./engine')).
+ */
+(function (root) {
+  function create(CONFIG, rng) {
+    rng = rng || Math.random;
+    const C = CONFIG, S = C.SCATTER, R = C.rows, N = C.reels, NL = C.paylines.length;
+    const round2 = v => Math.round(v * 100) / 100;
+    const clone = g => g.map(col => col.slice());
+    const minCount = s => Math.min(...Object.keys(C.paytable[s]).map(Number));   // 2 for symbols that pay 2 of a kind
+
+    function pickWeighted(table) {
+      let total = 0; for (const k in table) total += table[k];
+      let r = rng() * total;
+      for (const k in table) { r -= table[k]; if (r <= 0) return k; }
+      return Object.keys(table).pop();
+    }
+    // cumulative weight tables per reel, base and free spins
+    const tables = {};
+    // free spins: the special symbol's weight is multiplied by CONFIG.specialBoost (TUNED)
+    function table(fs, special) {
+      const key = fs ? 'fs' + (special ?? '') : 'base';
+      if (tables[key]) return tables[key];
+      const w = (fs && C.weightsFreeSpins) || C.weights;
+      return (tables[key] = w.map(row => { let a = 0; return row.map((x, s) => (a += x * (fs && s === special ? C.specialBoost || 1 : 1))); }));
+    }
+    function randomSymbol(reel, o = {}) {
+      const t = table(o.fs, o.special)[reel], total = t[t.length - 1];
+      for (let tries = 0; tries < 50; tries++) {
+        const r = rng() * total;
+        let s = 0; while (t[s] < r) s++;
+        if (o.noScatter && s === S) continue;
+        return s;
+      }
+      return C.regular[C.regular.length - 1];
+    }
+
+    /** Random stop. opts.fs uses the free spins weights (with opts.special boosted); opts.noScatter keeps Scatters off the board. */
+    function randomGrid(opts = {}) {
+      const g = [];
+      for (let c = 0; c < N; c++) { g.push([]); for (let r = 0; r < R; r++) g[c].push(randomSymbol(c, opts)); }
+      return g;
+    }
+
+    /** Line wins: highest win per line, left to right, adjacent reels; Scatters substitute. */
+    function evaluate(grid) {
+      const wins = [];
+      C.paylines.forEach((line, li) => {
+        let sym = null, count = 0, wilds = 0;
+        for (let c = 0; c < N; c++) {
+          const s = grid[c][line[c]];
+          if (s === S) { count++; wilds++; continue; }
+          if (sym === null) { sym = s; count++; continue; }
+          if (s === sym) { count++; continue; }
+          break;
+        }
+        if (sym === null) return;                      // a line of Scatters only pays as scatter
+        const pay = C.paytable[sym][Math.min(count, 5)];
+        if (!pay) return;
+        const positions = [];
+        for (let c = 0; c < count; c++) positions.push([c, line[c]]);
+        wins.push({ line: li, sym, count, pay, wilds, positions });
+      });
+      return wins;
+    }
+
+    function scatters(grid) {
+      const pos = [];
+      for (let c = 0; c < N; c++) for (let r = 0; r < R; r++) if (grid[c][r] === S) pos.push([c, r]);
+      return pos;
+    }
+
+    /** Free spins: reels holding the special symbol, and the pay if it expands. */
+    function expansion(grid, special) {
+      if (special == null) return null;
+      const reels = [], cells = [];
+      for (let c = 0; c < N; c++) {
+        let has = false;
+        for (let r = 0; r < R; r++) if (grid[c][r] === special) { has = true; cells.push([c, r]); }
+        if (has) reels.push(c);
+      }
+      const count = reels.length;
+      if (count < minCount(special)) return null;
+      const pay = C.paytable[special][Math.min(count, 5)];
+      if (!pay) return null;
+      return { sym: special, reels, cells, count, pay, lines: NL, mult: pay * (C.expandPaysAllLines ? NL : 1) };
+    }
+
+    /**
+     * Play out a stopped grid.
+     * opts.bet          total bet
+     * opts.inFreeSpins
+     * opts.special      the expanding symbol (free spins)
+     * Returns { start, end, steps, total (money), freeSpins }
+     */
+    function resolveSpin(startGrid, opts = {}) {
+      const bet = opts.bet || 1, fs = !!opts.inFreeSpins;
+      const grid = clone(startGrid), steps = [];
+      let mult = 0, freeSpins = 0;
+
+      // 1. line wins
+      const wins = evaluate(grid).map(w => Object.assign(w, { amount: round2(w.pay * bet) }));
+      if (wins.length) {
+        const m = wins.reduce((a, w) => a + w.pay, 0); mult += m;
+        steps.push({ type: 'win', wins, amount: round2(m * bet) });
+      }
+      // 2. scatters
+      const sc = scatters(grid);
+      if (sc.length >= 3) {
+        const m = C.scatterPays[Math.min(sc.length, 5)] || 0; mult += m;
+        freeSpins = fs ? C.freeSpinsRetrigger : C.freeSpins;
+        steps.push({ type: 'scatter', count: sc.length, positions: sc, amount: round2(m * bet), freeSpins, retrigger: fs });
+      }
+      // 3. expanding special symbol (free spins)
+      if (fs) {
+        const ex = expansion(grid, opts.special);
+        if (ex) {
+          mult += ex.mult;
+          ex.reels.forEach(c => { for (let r = 0; r < R; r++) grid[c][r] = ex.sym; });
+          steps.push(Object.assign({ type: 'expand', amount: round2(ex.mult * bet) }, ex));
+        }
+      }
+      return { start: clone(startGrid), end: grid, steps, total: round2(mult * bet), mult, freeSpins };
+    }
+
+    function pickSpecial() { return Number(pickWeighted(C.specialWeights)); }
+
+    /** Index into CONFIG.winTiers for a win, or -1 when it is below the first banner. */
+    function tierOf(total, bet) {
+      const x = total / bet; let t = -1;
+      C.winTiers.forEach((w, i) => { if (x >= w.min - 1e-9) t = i; });
+      return t;
+    }
+
+    return { randomGrid, randomSymbol, evaluate, scatters, expansion, resolveSpin, pickSpecial, tierOf, clone, pickWeighted, minCount };
+  }
+
+  const Engine = { create };
+  if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
+  else root.Engine = Engine;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* src/director.js */
+/*
+ * Director: builds scripted outcomes for demos and cheats.
+ * Each outcome is a stopped grid plus its resolved steps from the real engine, found by
+ * building or searching grids until one matches what was asked for. Pure logic, no drawing.
+ */
+(function (root) {
+  const OUTCOMES = {
+    random:    { label: 'Random spin',                      color: '#8d8aa6' },
+    nowin:     { label: 'No win',                           color: '#6c6a80' },
+    small:     { label: 'Single line win',                  color: '#4fbf8a' },
+    multi:     { label: 'Several line wins',                color: '#3fb6c9' },
+    wildwin:   { label: 'Win with the Scatter as Wild',     color: '#e0794a' },
+    tease:     { label: '2 Scatters (anticipation, no trigger)', color: '#b08a5a' },
+    trigger:   { label: '3 Scatters → Free Spins',          color: '#e8423a' },
+    trigger4:  { label: '4 Scatters → Free Spins (20×)',    color: '#d9302a' },
+    trigger5:  { label: '5 Scatters → Free Spins (200×)',   color: '#c2101a' },
+    nice:      { label: 'Nice win banner (10×+)',           color: '#d08a4a' },
+    big:       { label: 'Big win banner (20×+)',            color: '#ff9a3c' },
+    mega:      { label: 'Mega win banner (50×+)',           color: '#f2b632' },
+    superb:    { label: 'Superb win banner (100×+)',        color: '#3fcf7a' },
+    // free spins only (inside free spins they use the round's special symbol)
+    expand:    { label: 'Free spin: special expands (3 reels)', color: '#9b6bff', fs: true },
+    expand2:   { label: 'Free spin: special expands (2 reels)', color: '#8a6bdf', fs: true },
+    expand5:   { label: 'Free spin: special on all 5 reels',    color: '#c86bff', fs: true },
+    retrigger: { label: 'Free spin: retrigger (+10)',       color: '#ff6ad5', fs: true },
+    symwin:    { label: 'Symbol win',                       color: '#7ad06a' },   // item.sym 0-10, item.len 2-5
+    custom:    { label: 'Custom grid',                      color: '#2fd0c0' }
+  };
+
+  function create(CONFIG, engine) {
+    const C = CONFIG, S = C.SCATTER, R = C.rows, N = C.reels;
+    const rnd = n => Math.floor(Math.random() * n);
+    const scCount = g => engine.scatters(g).length;
+
+    function search(test, make, tries = 6000) {
+      let best = null;
+      for (let i = 0; i < tries; i++) {
+        const { grid, opts } = make();
+        const res = engine.resolveSpin(grid, opts);
+        const score = test(res);
+        if (score === true) return res;
+        if (typeof score === 'number' && (!best || score > best.score)) best = { score, res };
+      }
+      if (best) return best.res;
+      const m = make(); return engine.resolveSpin(m.grid, m.opts);
+    }
+    const stepOf = (res, type) => res.steps.find(s => s.type === type);
+    // put n Scatters on n different random reels (each on a random row)
+    function placeScatters(g, n, reels) {
+      const pool = reels ? reels.slice() : [...Array(N).keys()];
+      for (let i = pool.length - 1; i > 0; i--) { const j = rnd(i + 1); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+      pool.slice(0, n).forEach(c => { g[c][rnd(R)] = S; });
+      return g;
+    }
+
+    /** Build an outcome. ctx = { bet, inFreeSpins, special } */
+    function build(item, ctx) {
+      const bet = ctx.bet, fs = !!ctx.inFreeSpins, special = ctx.special;
+      const base = { bet, inFreeSpins: fs, special };
+      const rg = (o = {}) => engine.randomGrid(Object.assign({ fs, special, noScatter: true }, o));
+      const quiet = () => ({ grid: rg(), opts: base });
+      const noFeature = r => !stepOf(r, 'scatter') && !stepOf(r, 'expand');
+      const finish = res => { if (res.freeSpins && !fs) res.special = item.special != null ? Number(item.special) : engine.pickSpecial(); return res; };
+
+      switch (item.type) {
+        case 'nowin':
+          return search(r => r.total === 0, quiet);
+        case 'small':
+          return search(r => (noFeature(r) && stepOf(r, 'win') && stepOf(r, 'win').wins.length === 1 && r.total / bet >= .5 && r.total / bet < C.winTiers[0].min) || (r.total > 0 && noFeature(r) ? .5 : 0), quiet);
+        case 'multi':
+          return search(r => (noFeature(r) && stepOf(r, 'win') && stepOf(r, 'win').wins.length >= 3 && r.total / bet < C.winTiers[0].min) || (stepOf(r, 'win') ? stepOf(r, 'win').wins.length / 10 : 0), quiet);
+        case 'wildwin':
+          return search(r => { const w = stepOf(r, 'win'); return (w && w.wins.some(x => x.wilds > 0) && !stepOf(r, 'scatter')) || 0; },
+            () => { const g = rg(); g[1 + rnd(3)][1] = S; return { grid: g, opts: base }; });
+        case 'tease':
+          return search(r => (scCount(r.start) === 2 && !stepOf(r, 'expand')) || 0,
+            () => ({ grid: placeScatters(rg(), 2, [0, 1, 2]), opts: base }));
+        case 'trigger': case 'trigger4': case 'trigger5': case 'retrigger': {
+          const n = item.type === 'trigger4' ? 4 : item.type === 'trigger5' ? 5 : 3;
+          return finish(search(r => (scCount(r.start) === n && (!fs || !stepOf(r, 'expand'))) || 0, () => ({ grid: placeScatters(rg(), n), opts: base }), 50));
+        }
+        case 'nice': case 'big': case 'mega': case 'superb': {
+          // a real board in the tier's range: one to three lines of premiums, no scatter trigger
+          const ti = C.winTiers.findIndex(t => t.id === item.type), lo = C.winTiers[ti].min, hi = (C.winTiers[ti + 1] || { min: lo * 3 }).min;
+          return search(r => (noFeature(r) && r.total / bet >= lo && r.total / bet < hi) || 0, () => {
+            const g = rg(), k = 1 + rnd(3);
+            for (let i = 0; i < k; i++) {
+              const line = C.paylines[rnd(C.paylines.length)], s = rnd(6), len = 3 + rnd(3);
+              for (let c = 0; c < len; c++) g[c][line[c]] = s;
+            }
+            return { grid: g, opts: base };
+          }, 20000);
+        }
+        case 'expand': case 'expand2': case 'expand5': {
+          // the special symbol on n reels; without an active special (outside free spins) this plays as a normal spin
+          if (!fs || special == null) return engine.resolveSpin(rg(), base);
+          const need = item.type === 'expand2' ? 2 : item.type === 'expand5' ? 5 : 3;
+          const n = item.type === 'expand2' ? Math.max(2, engine.minCount(special)) : need;
+          return search(r => { const e = stepOf(r, 'expand'); return (e && e.count === n && !stepOf(r, 'scatter')) || 0; }, () => {
+            const g = rg(), reels = [...Array(N).keys()].sort(() => Math.random() - .5).slice(0, n);
+            for (let c = 0; c < N; c++) for (let r = 0; r < R; r++) if (g[c][r] === special) g[c][r] = (special + 1 + rnd(C.regular.length - 1)) % C.regular.length;
+            reels.forEach(c => { g[c][rnd(R)] = special; });
+            return { grid: g, opts: base };
+          }, 400);
+        }
+        case 'symwin': {
+          // the chosen symbol on the middle line, len in a row; only boards where that symbol is the only win
+          const s = Math.max(0, Math.min(10, Math.round(Number(item.sym)) || 0));
+          const minLen = engine.minCount(s), n = Math.max(minLen, Math.min(5, Math.round(Number(item.len)) || 3));
+          const make = () => {
+            const g = rg();
+            for (let c = 0; c < N; c++) {
+              if (c < n) g[c][1] = s;
+              else if (g[c][1] === s) g[c][1] = (s + 1 + rnd(10)) % 11;     // end the line exactly at n
+            }
+            return { grid: g, opts: base };
+          };
+          return search(r => {
+            const w = stepOf(r, 'win');
+            if (!w || !w.wins.some(x => x.sym === s && x.count === n)) return 0;
+            return (w.wins.every(x => x.sym === s) && !stepOf(r, 'expand')) ? true : .5;
+          }, make, 4000);
+        }
+        case 'custom': {
+          const ok = Array.isArray(item.grid) && item.grid.length === N && item.grid.every(col => Array.isArray(col) && col.length === R && col.every(v => Number.isInteger(v) && v >= 0 && v <= S));
+          if (!ok) return engine.resolveSpin(engine.randomGrid({ fs, special }), base);   // a malformed grid plays as a normal spin
+          return finish(engine.resolveSpin(item.grid.map(col => col.slice()), base));
+        }
+        default:
+          return finish(engine.resolveSpin(engine.randomGrid({ fs, special }), base));
+      }
+    }
+    return { build };
+  }
+
+  // readable name of a queued item, e.g. "Drum win, 4 in a row"
+  function describe(item, CONFIG) {
+    const o = OUTCOMES[item.type] || OUTCOMES.random, names = (CONFIG && CONFIG.symbolNames) || {};
+    if (item.type === 'symwin') {
+      const sym = Math.max(0, Math.min(10, Math.round(Number(item.sym)) || 0));
+      return `${names[sym] || 'Symbol'} win, ${Math.max(2, Math.min(5, Math.round(Number(item.len)) || 3))} in a row`;
+    }
+    if (/^trigger/.test(item.type) && item.special != null) return `${o.label}, special ${names[item.special]}`;
+    return o.label;
+  }
+
+  const Director = { create, OUTCOMES, describe };
+  if (typeof module !== 'undefined' && module.exports) module.exports = Director;
+  else root.Director = Director;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* src/placeholders.js */
+/*
+ * Placeholder art, drawn in code. Used for any image in assets/manifest.js that is
+ * missing, so the game always runs and art can be swapped in file by file.
+ * Every function returns a canvas the same way a loaded image would be used.
+ */
+(function (root) {
+  const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+  const TILE = ['#d4a017', '#8a2be2', '#1e6fd9', '#1aa0a0', '#1a9a3a', '#c2185b', '#d32f2f', '#1976d2', '#7b1fa2', '#388e3c', '#f57c00'];
+
+  // a coloured tile with the symbol's name, 600 x 520 (same framing as the supplied art)
+  function symbol(id, name) {
+    const c = mk(600, 520), x = c.getContext('2d');
+    if (id === root.CONFIG.SCATTER) {   // Scatter: red octagon
+      x.fillStyle = '#ffd34a'; x.beginPath(); for (let i = 0; i < 8; i++) { const a = Math.PI / 8 + i * Math.PI / 4; x.lineTo(300 + 250 * Math.cos(a), 260 + 250 * Math.sin(a)); } x.fill();
+      x.fillStyle = '#c8101a'; x.beginPath(); for (let i = 0; i < 8; i++) { const a = Math.PI / 8 + i * Math.PI / 4; x.lineTo(300 + 215 * Math.cos(a), 260 + 215 * Math.sin(a)); } x.fill();
+      x.fillStyle = '#ffe27a'; x.font = 'bold 92px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('SCATTER', 300, 260); return c;
+    }
+    x.fillStyle = TILE[id % TILE.length]; x.beginPath(); x.roundRect(20, 30, 560, 460, 30); x.fill();
+    x.lineWidth = 14; x.strokeStyle = '#ffd34a'; x.stroke();
+    x.fillStyle = '#fff'; x.font = `bold ${name.length > 3 ? 70 : 200}px sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(name, 300, 265, 520);
+    return c;
+  }
+  function background(W, H, free) {
+    const c = mk(W, H), x = c.getContext('2d'), L = root.CONFIG.window;
+    const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, free ? '#1a2a6a' : '#3aa0e0'); g.addColorStop(1, free ? '#3a4aa0' : '#f0a060'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+    x.fillStyle = '#b0181f'; x.fillRect(L.x - 40, L.y - 60, L.w + 80, L.h + 100);
+    for (let i = 0; i < 5; i++) { x.fillStyle = free ? '#4a1050' : '#5a0f16'; x.fillRect(L.x + i * L.w / 5 + 4, L.y, L.w / 5 - 8, L.h); }
+    x.fillStyle = '#ffd34a'; x.font = 'bold 64px sans-serif'; x.textAlign = 'center'; x.fillText(root.CONFIG.title.toUpperCase(), W / 2, 90);
+    return c;
+  }
+  function scatterFull() {
+    const c = mk(260, 620), x = c.getContext('2d');
+    x.fillStyle = '#1a2a8a'; x.fillRect(0, 0, 260, 620);
+    for (let i = 0; i < 18; i++) { x.fillStyle = '#d61f26'; x.fillRect(80 + (i % 2) * 50, 160 + i * 25, 48, 22); x.fillStyle = '#ffd34a'; x.fillRect(80 + (i % 2) * 50, 160 + i * 25, 6, 22); }
+    x.drawImage(symbol(11, 'Scatter'), 10, 0, 240, 210); return c;
+  }
+  function lantern() {
+    const c = mk(120, 260), x = c.getContext('2d');
+    x.fillStyle = '#ffd34a'; x.fillRect(58, 0, 4, 40); x.fillStyle = '#e8202a'; x.beginPath(); x.ellipse(60, 120, 55, 75, 0, 0, 7); x.fill();
+    x.fillStyle = '#ffd34a'; x.fillRect(35, 40, 50, 10); x.fillRect(35, 190, 50, 10); x.fillStyle = '#c8101a'; x.fillRect(56, 200, 8, 60); return c;
+  }
+  root.Placeholders = { symbol, background, scatterFull, lantern };
+})(window);
+
+</script>
+<script>
+/* src/assets.js */
+/*
+ * Asset loader. Tries every path in assets/manifest.js and falls back to the
+ * placeholder art in placeholders.js when a file is missing. UI, banners and modals
+ * are drawn in code unless a real file exists (check Assets.real[key]).
+ */
+(function (root) {
+  const P = root.Placeholders;
+  const Assets = { img: {}, real: {}, W: 1920, H: 1080, L: null };
+  const SYM_KEYS = { 0: 'sym_00_idle', 11: 'sym_scatter_idle' };
+  for (let i = 1; i <= 10; i++) SYM_KEYS[i] = 'sym_' + String(i).padStart(2, '0') + '_idle';
+  Assets.SYM_KEYS = SYM_KEYS;
+
+  function loadImage(src) {
+    return new Promise(res => {
+      if (!src) return res(null);
+      const im = new Image();
+      im.onload = () => res(im);
+      im.onerror = () => res(null);
+      im.src = src;
+    });
+  }
+  function placeholder(key) {
+    const { W, H } = Assets, C = root.CONFIG;
+    const id = Object.keys(SYM_KEYS).find(k => SYM_KEYS[k] === key);
+    if (id != null) return P.symbol(Number(id), C.symbolNames[id]);
+    switch (key) {
+      case 'sym_00_expanded': return P.symbol(0, 'PIG');
+      case 'bg_base_main': return P.background(W, H, false);
+      case 'bg_freegame_main': return P.background(W, H, true);
+      case 'fx_scatter_full': return P.scatterFull();
+      case 'fx_lantern': return P.lantern();
+    }
+    return null;
+  }
+
+  Assets.load = async function (manifest, W, H, layout, onProgress) {
+    Assets.W = W; Assets.H = H; Assets.L = layout; Assets.fits = manifest.fit || {};
+    const entries = Object.entries(manifest.images || {});
+    let done = 0;
+    const loaded = await Promise.all(entries.map(([, src]) => loadImage(src).then(im => { if (onProgress) onProgress(++done / entries.length); return im; })));
+    const missing = [];
+    entries.forEach(([key], i) => {
+      if (loaded[i]) { Assets.img[key] = loaded[i]; Assets.real[key] = true; }
+      else { Assets.img[key] = placeholder(key); missing.push(key); }
+    });
+    if (missing.length) console.info('[assets] using placeholders for:', missing.join(', '));
+    return { missing, loaded: entries.length - missing.length };
+  };
+
+  Assets.get = key => Assets.img[key] || null;
+  Assets.symbol = id => Assets.img[SYM_KEYS[id]] || null;
+  // [width, height] of the box a symbol is fitted into, as a fraction of the cell (manifest.fit)
+  Assets.fit = id => Assets.fits[SYM_KEYS[id]] || Assets.fits.default || [.98, 1.06];
+
+  root.Assets = Assets;
+})(window);
+
+</script>
+<script>
+/* src/audio.js */
+/*
+ * Sound. Plays the files named in the manifest (asset spec section 9) when present,
+ * otherwise synthesised placeholder effects. Everything runs through one master gain
+ * that also feeds the video recorder, so recordings include sound.
+ */
+(function (root) {
+  const A = { ctx: null, master: null, recDest: null, buffers: {}, music: null, musicKey: null, muted: false, loops: {} };
+
+  A.init = function (manifest) {
+    if (A.ctx) { if (A.ctx.state === 'suspended') A.ctx.resume().catch(() => {}); return; }
+    try {
+      A.ctx = new (root.AudioContext || root.webkitAudioContext)();
+      A.master = A.ctx.createGain(); A.master.gain.value = A.muted ? 0 : .6; A.master.connect(A.ctx.destination);
+      A.recDest = A.ctx.createMediaStreamDestination(); A.master.connect(A.recDest);
+    } catch (e) { A.ctx = null; return; }
+    if (location.protocol.startsWith('http')) {
+      Object.entries((manifest && manifest.sounds) || {}).forEach(([k, src]) => {
+        fetch(src).then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(b => A.ctx.decodeAudioData(b))
+          .then(buf => { A.buffers[k] = buf; if (k === A.musicKey) A.playMusic(k, true); }).catch(() => {});
+      });
+    }
+  };
+  A.setMuted = m => { A.muted = m; if (A.master) A.master.gain.value = m ? 0 : .6; };
+
+  function file(key, vol = 1, loop = false) {
+    const buf = A.buffers[key]; if (!buf || !A.ctx) return null;
+    const s = A.ctx.createBufferSource(), g = A.ctx.createGain();
+    s.buffer = buf; s.loop = loop; g.gain.value = vol; s.connect(g); g.connect(A.master); s.start();
+    return { s, g };
+  }
+  function tone(f, dur, o = {}) {
+    if (!A.ctx) return; const t = A.ctx.currentTime + (o.at || 0);
+    const osc = A.ctx.createOscillator(), g = A.ctx.createGain();
+    osc.type = o.type || 'sine'; osc.frequency.setValueAtTime(f, t);
+    if (o.slide) osc.frequency.exponentialRampToValueAtTime(Math.max(20, f * o.slide), t + dur);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(o.vol || .2, t + (o.attack || .006)); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    osc.connect(g); g.connect(A.master); osc.start(t); osc.stop(t + dur + .05);
+  }
+  function noise(dur, o = {}) {
+    if (!A.ctx) return; const t = A.ctx.currentTime + (o.at || 0), n = Math.floor(A.ctx.sampleRate * dur);
+    const buf = A.ctx.createBuffer(1, n, A.ctx.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    const src = A.ctx.createBufferSource(); src.buffer = buf;
+    const f = A.ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = o.q || 1.2;
+    f.frequency.setValueAtTime(o.f0 || 800, t); f.frequency.exponentialRampToValueAtTime(o.f1 || 2400, t + dur);
+    const g = A.ctx.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(o.vol || .15, t + dur * .2); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    src.connect(f); f.connect(g); g.connect(A.master); src.start(t); src.stop(t + dur + .05);
+  }
+  const semi = (b, s) => b * Math.pow(2, s / 12);
+
+  const SYNTH = {
+    sfx_spin_button_click() { tone(900, .05, { type: 'square', vol: .08, slide: .6 }); },
+    sfx_reel_spin() { noise(.45, { vol: .1, f0: 300, f1: 1800 }); },
+    sfx_reel_stop() { tone(180, .12, { type: 'triangle', vol: .3, slide: .6 }); noise(.04, { vol: .12, f0: 1200, f1: 900, q: 2 }); },
+    sfx_anticipation_reel3() { for (let i = 0; i < 16; i++) noise(.08, { vol: .05 + i * .01, f0: 200, f1: 180, q: 3, at: i * .11 }); tone(220, 1.8, { type: 'sawtooth', vol: .05, slide: 2.2, attack: .2 }); },
+    sfx_symbol_win_line() { [0, 4, 7].forEach((s, i) => tone(semi(523, s), .3, { type: 'triangle', vol: .14, at: i * .07 })); },
+    sfx_scatter_land() { tone(784, .25, { type: 'triangle', vol: .16 }); tone(1175, .3, { vol: .1, at: .05 }); },
+    sfx_scatter_win() { [0, 5, 9, 12].forEach((s, i) => tone(semi(587, s), .35, { type: 'triangle', vol: .13, at: i * .08 })); },
+    sfx_fuse() { noise(1.2, { vol: .12, f0: 3000, f1: 5000, q: .8 }); },
+    sfx_cracker_pop() { noise(.07, { vol: .3, f0: 2200, f1: 600, q: .7 }); tone(140 + Math.random() * 80, .06, { type: 'square', vol: .08, slide: .5 }); },
+    sfx_pick_tick() { tone(1400, .04, { type: 'square', vol: .05 }); },
+    sfx_pick_stop() { [0, 4, 7, 12].forEach((s, i) => tone(semi(523, s), .5, { type: 'triangle', vol: .14, at: i * .06 })); },
+    sfx_expand_flash() { tone(660, .3, { vol: .12, slide: 1.5 }); },
+    sfx_expand() { tone(330, .4, { type: 'sawtooth', vol: .06, slide: 2 }); noise(.3, { vol: .1, f0: 500, f1: 4000 }); },
+    sfx_countup_loop() { tone(1500 + Math.random() * 500, .05, { type: 'square', vol: .03 }); },
+    sfx_countup_end() { tone(1046, .5, { type: 'triangle', vol: .15 }); tone(1568, .6, { vol: .1, at: .06 }); },
+    banner_hit() { tone(98, .6, { type: 'sawtooth', vol: .12, slide: .5 }); noise(.4, { vol: .2, f0: 3000, f1: 400 }); }
+  };
+
+  A.play = function (key, vol) {
+    if (!A.ctx) return;
+    if (file(key, vol)) return;
+    if (/^sfx_reel_stop_/.test(key)) return SYNTH.sfx_reel_stop();
+    if (SYNTH[key]) SYNTH[key]();
+  };
+
+  // music plays only from real files (no synthesised music)
+  A.playMusic = function (key, force) {
+    if (A.musicKey === key && !force) return;
+    A.musicKey = key;
+    if (A.music) { const m = A.music; try { m.g.gain.setTargetAtTime(0, A.ctx.currentTime, .3); m.s.stop(A.ctx.currentTime + 1.2); } catch (e) {} A.music = null; }
+    if (A.buffers[key]) A.music = file(key, .5, true);
+  };
+
+  root.Audio2 = A;
+})(window);
+
+</script>
+<script>
+/* src/splash.js */
+/*
+ * Splash / loading screen. A DOM overlay on top of the stage (so it never appears in recordings).
+ * Logo: ui_splash_logo when supplied (else the title in text). Backdrop: the base game background.
+ * The bar follows real asset loading but never finishes before CONFIG.splash.minMs,
+ * so the screen is always readable. Click anywhere to skip once loading is done.
+ * Turn it off with CONFIG.splash.enabled = false, or open the page with ?nosplash.
+ * "Replay splash screen" in the demo panel runs it again.
+ */
+(function (root) {
+  let MSG = ['Loading...'];
+  const ICON = {
+    star: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.7-6.2 3.7 1.6-7L2 9.2l7.1-.6z"/></svg>',
+    vol: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>',
+    mute: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/></svg>',
+    full: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
+  };
+
+  let el, cv, ctx, raf, parts = [], st = null, ro, cfg = { minMs: 2600, fadeMs: 700 };
+
+  function build() {
+    const C = root.CONFIG; MSG = (C.texts && C.texts.loading) || MSG;
+    const wrap = document.getElementById('wrap'), manifest = root.ASSET_MANIFEST || { images: {} };
+    el = document.createElement('div');
+    el.className = 'splash';
+    el.setAttribute('aria-label', 'Loading');
+    const bg = manifest.images.bg_base_main, logo = manifest.images.ui_splash_logo;
+    el.innerHTML = `
+      <div class="sp-bg"${bg ? ` style="background-image:url('${bg}')"` : ''}></div>
+      <div class="sp-shade"></div>
+      <canvas class="sp-snow"></canvas>
+      <div class="sp-top">
+        <div class="sp-brand">${ICON.star}<span>${(C.texts && C.texts.brand) || C.title}</span></div>
+        <div class="sp-btns"><button class="sp-btn" data-act="vol" aria-label="Toggle sound"></button><button class="sp-btn" data-act="full" aria-label="Fullscreen">${ICON.full}</button></div>
+      </div>
+      <div class="sp-hero">
+        <div class="sp-halo"></div>
+        <div class="sp-logo">
+          ${logo ? `<img alt="${C.title}" src="${logo}" onerror="this.outerHTML='<div class=&quot;sp-title&quot;>${C.title.replace(/'/g, '')}</div>'">` : `<div class="sp-title">${C.title}</div>`}
+          <div class="sp-floor"></div>
+        </div>
+      </div>
+      <div class="sp-load">
+        <div class="sp-status"><span class="sp-spin"></span><span class="sp-msg">${MSG[0]}</span><b class="sp-pct">0%</b></div>
+        <div class="sp-bar"><div class="sp-trough"><div class="sp-fill"><i class="sp-sheen"></i><i class="sp-gloss"></i></div></div><u></u><u></u></div>
+      </div>`;
+    wrap.appendChild(el);
+    cv = el.querySelector('.sp-snow'); ctx = cv.getContext('2d');
+    el.addEventListener('click', e => {
+      const b = e.target.closest('.sp-btn');
+      if (b) {
+        if (b.dataset.act === 'vol' && root.Audio2) { root.Audio2.setMuted(!root.Audio2.muted); icons(); }
+        if (b.dataset.act === 'full') { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); else document.exitFullscreen(); }
+        return;
+      }
+      if (st && st.ready) leave();
+    });
+    ro = new ResizeObserver(place); ro.observe(wrap); ro.observe(document.getElementById('stage'));
+  }
+
+  const icons = () => { const b = el.querySelector('[data-act=vol]'); if (b) b.innerHTML = root.Audio2 && root.Audio2.muted ? ICON.mute : ICON.vol; };
+
+  // cover exactly the visible stage, and size everything from its width (1920 design px = full width)
+  function place() {
+    if (!el) return;
+    const w = document.getElementById('wrap').getBoundingClientRect(), s = document.getElementById('stage').getBoundingClientRect();
+    el.style.left = (s.left - w.left) + 'px'; el.style.top = (s.top - w.top) + 'px';
+    el.style.width = s.width + 'px'; el.style.height = s.height + 'px';
+    el.style.setProperty('--u', (s.width / 1920) + 'px');
+    cv.width = Math.max(1, Math.round(s.width)); cv.height = Math.max(1, Math.round(s.height));
+  }
+
+  function spawn(first) {
+    const u = cv.width / 1920;
+    return { x: Math.random() * cv.width, y: first ? Math.random() * cv.height : -10, r: (Math.random() * 2.8 + .8) * Math.max(u * 1.3, .6),
+      vy: (Math.random() * .9 + .4) * Math.max(u * 1.4, .6), vx: (Math.random() - .5) * .5, a: Math.random() * .65 + .25, gold: Math.random() > .55 };
+  }
+  function snow() {
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    for (const p of parts) {
+      p.y += p.vy; p.x += p.vx + Math.sin(p.y * .008) * .25;
+      if (p.y > cv.height + 10) Object.assign(p, spawn(false));
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7);
+      ctx.fillStyle = p.gold ? `rgba(255,225,109,${p.a})` : `rgba(255,255,255,${p.a})`;
+      ctx.shadowBlur = p.gold ? 5 : 3; ctx.shadowColor = p.gold ? '#ffe16d' : '#fff';
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+  }
+
+  function tick(t) {
+    if (!st) return;
+    snow();
+    const elapsed = t - st.t0;
+    const shown = Math.min(st.real, Math.min(1, elapsed / cfg.minMs));     // never ahead of the real load, never faster than minMs
+    st.shown += (shown - st.shown) * .35;                                     // glide
+    const pct = shown >= 1 && st.real >= 1 ? 100 : Math.min(99, Math.round(st.shown * 100));
+    el.querySelector('.sp-fill').style.width = Math.max(pct, 2) + '%';
+    el.querySelector('.sp-pct').textContent = pct + '%';
+    const i = Math.min(MSG.length - 1, Math.floor(pct / 25)), m = el.querySelector('.sp-msg');
+    const txt = pct >= 100 ? 'Welcome to ' + root.CONFIG.title + '!' : MSG[i];
+    if (m.textContent !== txt) m.textContent = txt;
+    if (pct >= 100 && st.real >= 1 && !st.ready) { st.ready = true; st.tReady = t; }
+    if (st.ready && t - st.tReady > 450) return leave();
+    raf = requestAnimationFrame(tick);
+  }
+
+  function leave() {
+    if (!st || st.leaving) return;
+    st.leaving = true; cancelAnimationFrame(raf);
+    el.classList.add('out');
+    const e = el; setTimeout(() => { if (el === e && st && st.leaving) { e.hidden = true; e.classList.remove('out'); st = null; } }, cfg.fadeMs + 50);
+  }
+
+  const Splash = {
+    start(C) {
+      cfg = Object.assign({ minMs: 2600, fadeMs: 700 }, C && C.splash);
+      if (!el) build();
+      cancelAnimationFrame(raf);
+      el.hidden = false; el.classList.remove('out'); el.style.setProperty('--fade', cfg.fadeMs + 'ms');
+      place(); icons();
+      parts = Array.from({ length: 60 }, () => spawn(true));
+      st = { t0: performance.now(), real: 0, shown: 0, ready: false, leaving: false };
+      raf = requestAnimationFrame(tick);
+    },
+    progress(p) { if (st) st.real = Math.max(st.real, Math.min(.99, p)); },
+    finish() { if (st) st.real = 1; },
+    replay(C) { Splash.start(C); Splash.finish(); },
+    active() { return !!st; },
+    skip() { if (st) { st.real = 1; st.ready = true; leave(); } },
+  };
+  root.Splash = Splash;
+})(window);
+
+</script>
+<script>
+/* src/game.js */
+/*
+ * Game presentation (timings in CONFIG.frames, 30 fps frame counts).
+ *
+ * The engine resolves a spin into steps (win, scatter, expand); this file spins the
+ * reels and animates those steps, then runs the free spins flow: fuse unroll on the
+ * Scatters, intro modal, special symbol pick, transition, free spins with the
+ * expanding symbol, retriggers, summary and transition back. Everything is drawn on
+ * one canvas (#stage) so it can be recorded to video.
+ */
+(function (root) {
+  const C = root.CONFIG, A = root.Assets, SND = root.Audio2;
+  const engine = root.Engine.create(C);
+  const director = root.Director.create(C, engine);
+  const cv = document.getElementById('stage'), ctx = cv.getContext('2d');
+  const [W, H] = C.stage.landscape; cv.width = W; cv.height = H;
+  const FR = C.frames, SC = C.SCATTER;
+  const BLOCK = '"Lilita One", "Arial Black", sans-serif';
+  const UIF = '"Outfit", "Arial", sans-serif';
+
+  const now = () => performance.now() / 1000;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, u) => a + (b - a) * u;
+  const ease = {
+    out: u => 1 - Math.pow(1 - u, 3),
+    inOut: u => u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2,
+    back: (u, s = 1.7) => 1 + (s + 1) * Math.pow(u - 1, 3) + s * Math.pow(u - 1, 2),
+    elastic: u => u <= 0 ? 0 : u >= 1 ? 1 : Math.pow(2, -10 * u) * Math.sin((u * 10 - .75) * (2 * Math.PI) / 3) + 1
+  };
+  const fmt = v => C.currency + Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  /* ------------------------------------------------------------ state */
+  const G = {
+    balance: C.startBalance, betIndex: C.defaultBetIndex, win: 0, winFrom: 0, winT0: 0,
+    busy: false, spinning: false, autoplay: false, skip: 0, speed: 1,
+    board: null, fx: null, reels: [], spinResolve: null,
+    lines: null, labels: [], particles: [], dim: 0, fuses: [], expanded: {}, antic: null,
+    banner: null, modal: null, trans: null, info: false,
+    env: 0, envTarget: 0, camera: 1, message: null,
+    fs: { active: false, left: 0, played: 0, total: 0, awarded: 0, special: null },
+    queue: [], onChange: () => {}
+  };
+  const bet = () => C.bets[G.betIndex];
+  // presentation speed changes (demo slider) wait until the next spin starts, so an animation never speeds up or slows down halfway
+  const setSpeed = v => { G.speedWanted = v; if (!G.busy) G.speed = v; };
+  const applySpeed = () => { if (G.speedWanted) G.speed = G.speedWanted; };
+  const sec = frames => frames / C.fps / G.speed;          // frames -> seconds at current speed
+
+  /* ------------------------------------------------------------ layout */
+  const WIN = C.window, cw = WIN.w / C.reels, ch = WIN.h / C.rows, x0 = WIN.x, y0 = WIN.y, gw = WIN.w, gh = WIN.h;
+  const L = { cw, ch, x0, y0, gw, gh };
+  const cellCenter = (c, r) => [x0 + c * cw + cw / 2, y0 + r * ch + ch / 2];
+  const hy = C.hudTop, barH = H - hy;
+  // HUD positions follow the supplied mockup's bottom bar
+  const btn = {
+    settings: { x: 206, y: 989, r: 22 }, sound: { x: 206, y: 1036, r: 22 }, info: { x: 278, y: 1013, r: 37 },
+    minus: { x: 905, y: 970, r: 24 }, plus: { x: 965, y: 970, r: 24 },
+    spin: { x: 1647, y: 964, r: 78 }, auto: { x: 1647, y: 1058, r: 40 }
+  };
+  const pill = { x: 610, y: 881, w: 700, h: 58 };
+
+  G.board = engine.randomGrid({ noScatter: true });
+  const newFx = () => G.board.map(col => col.map(() => ({})));
+  G.fx = newFx();
+
+  /* ------------------------------------------------------------ waits */
+  function wait(s, skippable = false) {
+    const tok = G.skip, end = performance.now() + s * 1000;
+    return new Promise(res => { const tick = () => (performance.now() >= end || (skippable && G.skip !== tok)) ? res() : setTimeout(tick, 10); tick(); });
+  }
+  const waitF = (frames, skippable) => wait(sec(frames), skippable);
+
+  /* ------------------------------------------------------------ reels */
+  // anticipation: once two Scatters are showing, every later reel spins FR.anticipation frames longer
+  function anticipationFrom(grid) {
+    if (!C.anticipate) return C.reels;
+    let n = 0;
+    for (let c = 0; c < C.reels; c++) { if (n >= 2) return c; if (grid[c].includes(SC)) n++; }
+    return C.reels;
+  }
+  function startReels(grid, fs, special) {
+    return new Promise(resolve => {
+      const t0 = now(), sp = C.spin, R = C.rows, from = anticipationFrom(grid);
+      grid.forEach((col, i) => {
+        const cur = G.board[i];
+        const extra = i >= from ? sec(FR.anticipation) * (i - from + 1) : 0;
+        const Tstop = (sp.first + i * sp.gap) / G.speed + extra, wu = .1 / G.speed;
+        const N = Math.max(R + 3, Math.round(sp.speed * (Tstop - wu)));
+        const rs = () => engine.randomSymbol(i, { fs, special });
+        const s = [rs(), ...col, rs()];
+        for (let k = 1; k < N; k++) s.push(rs());
+        s.push(rs(), ...cur, rs());
+        const pStart = R + N + 2, D = pStart - 1;
+        const vEff = (D - .9) / (Tstop - wu), b = sp.bounce, slope = b + 3;
+        G.reels[i] = { strip: s, p: pStart, pStart, D, t0, T: Tstop, wu, vEff, b, bt: clamp(.9 * slope / vEff, .08, .6), state: 'spin', landed: false, antic: i >= from };
+      });
+      G.antic = from < C.reels ? { from, t0 } : null;
+      G.spinGrid = grid; G.spinResolve = resolve;
+    });
+  }
+  function updateReels(t) {
+    G.reels.forEach((r, i) => {
+      if (!r || r.state !== 'spin') return;
+      const tau = t - r.t0; let d;
+      r.blur = false;
+      if (tau < r.wu) d = -.2 * Math.sin(Math.PI * tau / r.wu);
+      else if (tau < r.T) { d = r.vEff * (tau - r.wu); r.blur = r.T - tau > .03; }
+      else {
+        const u = Math.min(1, (tau - r.T) / r.bt);
+        d = (r.D - .9) + .9 * ease.back(u, r.b);
+        if (!r.landed && u > .3) {
+          r.landed = true; SND.play('sfx_reel_stop_0' + (i + 1));
+          const sc = G.spinGrid[i];
+          sc.forEach((s, rr) => { if (s === SC) { G.fx[i][rr].land = t; SND.play('sfx_scatter_land'); } });
+        }
+        if (u >= 1) { r.state = 'idle'; G.board[i] = G.spinGrid[i].slice(); return; }
+      }
+      r.p = r.pStart - d;
+    });
+    if (G.antic && G.reels.every(r => !r || r.state === 'idle' || !r.antic)) G.antic = null;
+    if (G.spinResolve && G.reels.every(r => !r || r.state === 'idle')) { const f = G.spinResolve; G.spinResolve = null; f(); }
+  }
+
+  /* ------------------------------------------------------------ particles */
+  function emit(type, x, y, n, o = {}) {
+    for (let i = 0; i < n; i++) {
+      const a = (o.angle ?? -Math.PI / 2) + (Math.random() - .5) * (o.spread ?? 1.6), sp = (o.speed ?? 500) * (.5 + Math.random());
+      G.particles.push({ type, x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, g: o.gravity ?? 900, life: 0, max: (o.life ?? 1.4) * (.8 + Math.random() * .4),
+        rot: Math.random() * 6, vr: (Math.random() - .5) * 8, size: (o.size ?? 22) * (.7 + Math.random() * .6),
+        color: Array.isArray(o.color) ? o.color[Math.floor(Math.random() * o.color.length)] : (o.color || '#fff'), burst: o.burst });
+    }
+  }
+  function drawParticles(dt) {
+    G.particles = G.particles.filter(p => {
+      if (p.life >= p.max) { if (p.burst) emit('spark', p.x, p.y, 26, { angle: 0, spread: 7, speed: 380, gravity: 220, life: 1.1, size: 7, color: p.burst }); return false; }
+      return true;
+    });
+    for (const p of G.particles) {
+      p.life += dt; p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt;
+      const a = 1 - Math.pow(p.life / p.max, 2);
+      ctx.save(); ctx.globalAlpha = clamp(a, 0, 1); ctx.translate(p.x, p.y);
+      if (p.type === 'coin') {
+        ctx.rotate(p.rot * .2); const w = Math.abs(Math.cos(p.rot)) * p.size + 2;
+        ctx.fillStyle = '#f7c948'; ctx.beginPath(); ctx.ellipse(0, 0, w, p.size, 0, 0, 7); ctx.fill();
+        ctx.strokeStyle = '#a8681a'; ctx.lineWidth = 3; ctx.stroke();
+        if (w > p.size * .6) { ctx.fillStyle = '#a8681a'; ctx.fillRect(-w * .22, -p.size * .22, w * .44, p.size * .44); }
+      } else if (p.type === 'confetti') { ctx.rotate(p.rot); ctx.fillStyle = p.color; ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2 * Math.abs(Math.cos(p.rot * 2))); }
+      else if (p.type === 'cracker') {     // little red firecracker tube
+        ctx.rotate(p.rot); ctx.fillStyle = '#d61f26'; ctx.fillRect(-p.size * .2, -p.size * .5, p.size * .4, p.size);
+        ctx.fillStyle = '#ffd34a'; ctx.fillRect(-p.size * .2, -p.size * .5, p.size * .4, p.size * .14); ctx.fillRect(-p.size * .2, p.size * .36, p.size * .4, p.size * .14);
+      } else if (p.type === 'rocket') { ctx.fillStyle = '#fff6c8'; ctx.beginPath(); ctx.arc(0, 0, 5, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(255,200,120,.4)'; ctx.fillRect(-2, 0, 4, 30); }
+      else { ctx.fillStyle = p.color; ctx.shadowColor = p.color; ctx.shadowBlur = 8; ctx.beginPath(); ctx.arc(0, 0, p.size / 2, 0, 7); ctx.fill(); }
+      ctx.restore();
+    }
+  }
+  // a firecracker string popping: flashes, sparks and flying tubes along a reel
+  function popCrackers(c, n = 10) {
+    const x = x0 + c * cw + cw / 2;
+    for (let i = 0; i < n; i++) setTimeout(() => {
+      const y = y0 + Math.random() * gh;
+      emit('spark', x + (Math.random() - .5) * cw * .5, y, 14, { angle: 0, spread: 7, speed: 420, gravity: 300, life: .6, size: 9, color: ['#fff6c8', '#ffd34a', '#ff5a3a'] });
+      emit('cracker', x, y, 2, { speed: 500, gravity: 1200, life: 1, size: 28 });
+      SND.play('sfx_cracker_pop');
+    }, i * 70 / G.speed);
+  }
+
+  /* ------------------------------------------------------------ text helpers */
+  function blockText(txt, x, y, size, o = {}) {
+    ctx.save(); ctx.translate(x, y); const k = o.scale ?? 1; ctx.scale(k, k); ctx.globalAlpha = o.alpha ?? 1;
+    ctx.font = `${size}px ${BLOCK}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (o.maxW) { const w = ctx.measureText(txt).width; if (w * k > o.maxW) { const s = o.maxW / (w * k); ctx.scale(s, s); } }
+    const cols = o.colors || ['#fffbe0', '#ffd04a', '#e07b00'];
+    const g = ctx.createLinearGradient(0, -size * .5, 0, size * .5); cols.forEach((c, i) => g.addColorStop(i / (cols.length - 1), c));
+    ctx.lineJoin = 'round';
+    ctx.fillStyle = o.shadow || 'rgba(60,5,5,.85)'; ctx.fillText(txt, size * .03, size * .07);
+    ctx.lineWidth = size * .14; ctx.strokeStyle = o.stroke || '#6a0a0a'; ctx.strokeText(txt, 0, 0);
+    ctx.fillStyle = g; ctx.fillText(txt, 0, 0); ctx.restore();
+  }
+  function uiText(txt, x, y, size, col = '#fff', align = 'center', weight = 700) {
+    ctx.font = `${weight} ${size}px ${UIF}`; ctx.fillStyle = col; ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.fillText(txt, x, y);
+  }
+
+  /* ------------------------------------------------------------ environment */
+  function drawEnvironment(t) {
+    const breathe = .5 - .5 * Math.cos(t / (FR.bgBaseLoop / C.fps) * Math.PI * 2);
+    ctx.drawImage(A.get('bg_base_main'), 0, 0, W, H);
+    if (G.env > 0) { ctx.save(); ctx.globalAlpha = G.env; ctx.drawImage(A.get('bg_freegame_main'), 0, 0, W, H); ctx.restore(); }
+    // warm light breathing either side of the reels (side decorations on the background)
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    [[90, 250], [W - 90, 250]].forEach(([lx, ly]) => {
+      const g = ctx.createRadialGradient(lx, ly, 0, lx, ly, 150); g.addColorStop(0, `rgba(255,150,60,${.10 + .10 * breathe})`); g.addColorStop(1, 'rgba(255,120,40,0)');
+      ctx.fillStyle = g; ctx.fillRect(lx - 150, ly - 150, 300, 300);
+    });
+    ctx.restore();
+    // free spins: warm sparks drift up either side
+    if (G.env > .5 && Math.random() < .03) emit('spark', Math.random() < .5 ? 40 + Math.random() * 150 : W - 190 + Math.random() * 150, H * .8, 1, { angle: -Math.PI / 2, spread: .2, speed: 60, gravity: -5, life: 6, size: 12, color: ['#ffb84a', '#ffd27a'] });
+  }
+
+  /* ------------------------------------------------------------ symbols */
+  // draw a symbol image fitted into its cell box (manifest.fit scales the box per symbol)
+  function drawSym(id, cx, cy, o = {}) {
+    const img = A.symbol(id); if (!img) return;
+    const f = A.fit(id), bw = cw * f[0], bh = ch * f[1], k = Math.min(bw / img.width, bh / img.height) * (o.scale ?? 1);
+    const w = img.width * k, h = img.height * k * (o.scaleY ?? 1);
+    ctx.save(); ctx.globalAlpha = o.alpha ?? 1;
+    ctx.drawImage(img, cx - w / 2, cy - h / 2 + (o.dy || 0) + img.height * k * (1 - (o.scaleY ?? 1)) / 2, w, h);
+    ctx.restore();
+  }
+  // winning symbol scale curve: pop to 1.12, hold with a small bob, settle back
+  function winScale(f) {
+    const [a, b, c] = FR.symWin;
+    if (f < a) return 1 + .12 * ease.out(f / a);
+    if (f < a + b) return 1.12 + .02 * Math.sin((f - a) / b * Math.PI);
+    if (f < a + b + c) return 1.12 - .12 * ease.inOut((f - a - b) / c);
+    return 1;
+  }
+  function drawCell(c, r, s, cx, cy, t) {
+    const fx = G.fx[c][r] || {}, F = x => (t - x) * C.fps * G.speed;
+    let scale = 1, sy = 1, alpha = 1;
+    if (fx.win != null) {
+      const f = F(fx.win); scale = winScale(f);
+      // glow behind a winning symbol
+      const a = Math.sin(clamp(f / (FR.symWin[0] + FR.symWin[1] + FR.symWin[2]), 0, 1) * Math.PI);
+      ctx.save(); ctx.globalAlpha = a * .85; const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, cw * .6); g.addColorStop(0, 'rgba(255,230,140,.95)'); g.addColorStop(1, 'rgba(255,200,60,0)'); ctx.fillStyle = g; ctx.fillRect(cx - cw * .6, cy - ch * .6, cw * 1.2, ch * 1.2); ctx.restore();
+    } else if (G.dim && !fx.keep) alpha = 1 - .55 * G.dim;
+    if (s === SC && fx.land != null) { const f = F(fx.land); if (f < FR.scatterLand) sy = .82 + .18 * ease.back(f / FR.scatterLand, 2.5); }
+    if (fx.pulse != null) scale *= 1 + .06 * Math.sin((t - fx.pulse) * 9);
+    drawSym(s, cx, cy, { scale, scaleY: sy, alpha });
+  }
+  function drawGrid(t) {
+    // spinning reels are clipped to the window; stopped symbols may overflow it slightly, as in the mockup
+    ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, gw, gh); ctx.clip();
+    for (let c = 0; c < C.reels; c++) {
+      const r = G.reels[c];
+      if (r && r.state === 'spin') {
+        const j0 = Math.floor(r.p) - 1, j1 = Math.ceil(r.p + C.rows);
+        for (let j = Math.max(0, j0); j <= Math.min(r.strip.length - 1, j1); j++) {
+          const cx = x0 + c * cw + cw / 2, cy = y0 + (j - r.p) * ch + ch / 2;
+          if (r.blur) for (let q = -2; q <= 2; q++) drawSym(r.strip[j], cx, cy + q * ch * .06, { alpha: q ? .22 : .5 });
+          else drawSym(r.strip[j], cx, cy);
+        }
+      }
+    }
+    ctx.restore();
+    // draw top row last so a symbol's overflow sits under the row above it? Bottom-up keeps tile tops visible.
+    for (let row = C.rows - 1; row >= 0; row--) for (let c = 0; c < C.reels; c++) {
+      const r = G.reels[c]; if (r && r.state === 'spin') continue;
+      if (G.expanded[c] && G.expanded[c].done) continue;
+      const [cx, cy] = cellCenter(c, row); drawCell(c, row, G.board[c][row], cx, cy, t);
+    }
+  }
+
+  /* ------------------------------------------------------------ fx layers */
+  // anticipation: a glowing frame (and the fx_lantern decoration, if supplied) on each reel still spinning for the third Scatter
+  function drawAnticipation(t) {
+    if (!G.antic) return;
+    const lamp = A.real.fx_lantern ? A.get('fx_lantern') : null;
+    G.reels.forEach((r, c) => {
+      if (!r || !r.antic || r.state !== 'spin') return;
+      const x = x0 + c * cw, a = clamp((t - G.antic.t0 - (r.T - sec(FR.anticipation)) ) * 3, 0, 1);
+      if (a <= 0) return;
+      ctx.save(); ctx.globalAlpha = a;
+      ctx.strokeStyle = '#ffd34a'; ctx.lineWidth = 8; ctx.shadowColor = '#ff8a00'; ctx.shadowBlur = 36;
+      ctx.beginPath(); ctx.roundRect(x + 4, y0 - 4, cw - 8, gh + 8, 16); ctx.stroke(); ctx.shadowBlur = 0;
+      ctx.globalCompositeOperation = 'lighter'; const g = ctx.createLinearGradient(0, y0, 0, y0 + gh); g.addColorStop(0, 'rgba(255,150,40,.35)'); g.addColorStop(1, 'rgba(255,60,20,.05)'); ctx.fillStyle = g; ctx.fillRect(x + 6, y0, cw - 12, gh);
+      ctx.globalCompositeOperation = 'source-over';
+      if (lamp) { const lw = cw * .26, lh = lamp.height * lw / lamp.width; ctx.translate(x + cw / 2, y0 + 4); ctx.rotate(Math.sin(t * 3 + c) * .12); ctx.globalCompositeOperation = 'source-over'; ctx.drawImage(lamp, -lw / 2, 0, lw, lh); }
+      ctx.restore();
+      if (Math.random() < .5) emit('spark', x + Math.random() * cw, y0 + Math.random() * gh, 1, { angle: -Math.PI / 2, spread: 1, speed: 160, gravity: -40, life: .6, size: 8, color: ['#fff6b0', '#ffb84a'] });
+    });
+  }
+  // fuse: the Scatter's firecracker string unrolls down its reel (fx_scatter_full), then pops
+  function drawFuses(t) {
+    G.fuses = G.fuses.filter(f => !f.gone);
+    const img = A.get('fx_scatter_full');
+    G.fuses.forEach(f => {
+      const u = clamp((t - f.t0) / sec(FR.fuse[0]), 0, 1), a = f.fade ? clamp(1 - (t - f.fade) / .4, 0, 1) : 1;
+      if (a <= 0) { f.gone = true; return; }
+      const x = x0 + f.c * cw, reveal = ease.out(u);
+      ctx.save(); ctx.globalAlpha = a; ctx.beginPath(); ctx.rect(x - 6, y0 - 10, cw + 12, (gh + 20) * reveal); ctx.clip();
+      if (img) { const k = Math.min((cw + 8) / img.width, (gh + 16) / img.height), w = img.width * k, h = img.height * k; ctx.drawImage(img, x + cw / 2 - w / 2, y0 + gh / 2 - h / 2, w, h); }
+      else { ctx.fillStyle = '#b0181f'; ctx.fillRect(x, y0, cw, gh); }
+      ctx.restore();
+      // burning fuse tip
+      if (u < 1) { const yy = y0 + gh * reveal; emit('spark', x + cw / 2, yy, 2, { angle: Math.PI / 2, spread: 3, speed: 200, gravity: 300, life: .4, size: 8, color: ['#fff6c8', '#ffb000'] }); }
+    });
+  }
+  // expanded special symbol: grows from its cells to fill the reel
+  function drawExpanded(t) {
+    const bigArt = A.real.sym_00_expanded ? A.get('sym_00_expanded') : null;   // optional full-reel art for symbol 0
+    Object.entries(G.expanded).forEach(([c, e]) => {
+      c = Number(c);
+      const x = x0 + c * cw, u = e.t1 ? ease.out(clamp((t - e.t1) / sec(FR.expand[1]), 0, 1)) : 0;
+      if (u >= 1) e.done = true;
+      const top = lerp(e.y0, y0 - 4, u), bot = lerp(e.y1, y0 + gh + 4, u);
+      ctx.save();
+      ctx.beginPath(); ctx.roundRect(x + 3, top, cw - 6, bot - top, 14); ctx.clip();
+      if (e.sym === 0 && bigArt) {
+        // symbol 0 has its own full-reel art (sym_00_expanded), drawn over a panel in CONFIG.texts.expandedPanel colours
+        const pc = (C.texts && C.texts.expandedPanel) || ['#7fd0ff', '#bfe9ff', '#ffffff'];
+        const g = ctx.createLinearGradient(0, y0, 0, y0 + gh); g.addColorStop(0, pc[0]); g.addColorStop(.7, pc[1]); g.addColorStop(1, pc[2]);
+        ctx.fillStyle = g; ctx.fillRect(x, y0 - 6, cw, gh + 12);
+        const k = Math.min((cw - 14) / bigArt.width, (gh - 6) / bigArt.height), w = bigArt.width * k, h = bigArt.height * k;
+        ctx.drawImage(bigArt, x + cw / 2 - w / 2, y0 + gh - h + 2, w, h);
+      } else {
+        const g = ctx.createLinearGradient(0, y0, 0, y0 + gh); g.addColorStop(0, 'rgba(120,10,20,.92)'); g.addColorStop(1, 'rgba(70,5,15,.92)');
+        ctx.fillStyle = g; ctx.fillRect(x, y0 - 6, cw, gh + 12);
+        for (let r = 0; r < C.rows; r++) { const [cx, cy] = cellCenter(c, r); drawSym(e.sym, cx, cy, { scale: .96 }); }
+      }
+      ctx.restore();
+      // gold frame with a pulse
+      const pulse = .6 + .4 * Math.sin(t * 5);
+      ctx.save(); ctx.strokeStyle = '#ffd34a'; ctx.lineWidth = 7; ctx.shadowColor = '#ffb000'; ctx.shadowBlur = 18 + 14 * pulse;
+      ctx.beginPath(); ctx.roundRect(x + 3, top, cw - 6, bot - top, 14); ctx.stroke(); ctx.restore();
+    });
+  }
+  // paylines: coloured paths with a number tag at both ends
+  const LINE_COLORS = ['#ffd84a', '#ff5a5a', '#4ad0ff', '#7be35a', '#ff8a3a', '#c47bff', '#ff6ad5', '#3affb4', '#ffffff', '#ffb43a'];
+  function linePath(li) {
+    const line = C.paylines[li]; ctx.beginPath();
+    line.forEach((r, c) => { const [cx, cy] = cellCenter(c, r); if (!c) { ctx.moveTo(x0 - 16, cy); } ctx.lineTo(cx, cy); });
+    const [, ey] = cellCenter(C.reels - 1, line[C.reels - 1]); ctx.lineTo(x0 + gw + 16, ey);
+  }
+  function drawLines(t) {
+    const L2 = G.lines; if (!L2) return;
+    const a = L2.fade ? clamp(1 - (t - L2.fade) / .25, 0, 1) : clamp((t - L2.t0) / .15, 0, 1);
+    if (a <= 0) { G.lines = null; return; }
+    ctx.save(); ctx.globalAlpha = a; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    L2.lines.forEach(li => {
+      const col = LINE_COLORS[li % LINE_COLORS.length];
+      linePath(li); ctx.strokeStyle = 'rgba(40,5,0,.65)'; ctx.lineWidth = 15; ctx.stroke(); ctx.strokeStyle = col; ctx.lineWidth = 7; ctx.stroke();
+      const line = C.paylines[li];
+      [[x0 - 16, line[0]], [x0 + gw + 16, line[C.reels - 1]]].forEach(([lx, r]) => {
+        const ly = y0 + r * ch + ch / 2; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(lx, ly, 17, 0, 7); ctx.fill(); ctx.strokeStyle = '#3b0505'; ctx.lineWidth = 3; ctx.stroke();
+        uiText(String(li + 1), lx, ly + 1, 19, '#3b0505', 'center', 700);
+      });
+    });
+    ctx.restore();
+    G.labels.forEach(l => blockText(l.text, l.x, l.y, l.size || 44, { scale: .6 + .4 * ease.back(clamp((t - l.t0) / .25, 0, 1)), alpha: a }));
+  }
+
+  /* ------------------------------------------------------------ HUD (follows the mockup's bottom bar) */
+  function drawHUD(t) {
+    // message pill above the bar, overlapping the reel ledge
+    const fs = G.fs, inFS = fs.active || (G.modal && G.modal.kind === 'outro');
+    ctx.save(); ctx.fillStyle = inFS ? '#14101e' : '#1e1210'; ctx.beginPath(); ctx.roundRect(pill.x - 4, pill.y - 2, pill.w + 8, pill.h + 24, 20); ctx.fill(); ctx.restore();
+    let msg = G.message || C.message;
+    if (inFS && !G.message) msg = `FREE SPIN ${Math.min(fs.played, fs.awarded)} OF ${fs.awarded}`;
+    uiText(msg, pill.x + pill.w / 2, pill.y + pill.h / 2 + 2, 30, inFS ? '#ffd45a' : '#fff', 'center', 600);
+    // bar
+    const g = ctx.createLinearGradient(0, hy, 0, H); g.addColorStop(0, inFS ? '#141224' : '#2a1a14'); g.addColorStop(1, inFS ? '#0a0914' : '#160d0a'); ctx.fillStyle = g; ctx.fillRect(0, hy, W, barH);
+    const ring = (b, fill = '#000') => { ctx.fillStyle = fill; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.stroke(); };
+    // settings, sound, info
+    ring(btn.settings); ctx.save(); ctx.translate(btn.settings.x, btn.settings.y); ctx.fillStyle = '#fff';
+    for (let i = 0; i < 8; i++) { ctx.rotate(Math.PI / 4); ctx.fillRect(-3, -14, 6, 7); } ctx.beginPath(); ctx.arc(0, 0, 9, 0, 7); ctx.fill(); ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, 0, 4, 0, 7); ctx.fill(); ctx.restore();
+    ring(btn.sound); ctx.save(); ctx.translate(btn.sound.x, btn.sound.y); ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.moveTo(-9, -5); ctx.lineTo(-3, -5); ctx.lineTo(5, -12); ctx.lineTo(5, 12); ctx.lineTo(-3, 5); ctx.lineTo(-9, 5); ctx.closePath(); ctx.fill();
+    if (SND.muted) { ctx.strokeStyle = '#ff5a5a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-12, -12); ctx.lineTo(12, 12); ctx.stroke(); } ctx.restore();
+    ring(btn.info); uiText('i', btn.info.x, btn.info.y + 2, 50, '#fff', 'center', 700);
+    // values and labels
+    const value = (v, x, col = '#fff') => uiText(v, x, 1014, 44, col);
+    const label = (v, x) => uiText(v, x, 1058, 27, '#f5b800');
+    const wv = G.winFrom + (G.win - G.winFrom) * ease.out(clamp((t - G.winT0) / .6, 0, 1));
+    value(fmt(G.balance), 458); label('CASH', 458);
+    if (G.notice && performance.now() - G.notice.t0 < 2600) uiText(G.notice.text, 458, 966, 18, '#ffd45a', 'center', 600);
+    value(String(C.paylines.length), 697); label('LINES', 697);
+    value(fmt(bet() / C.paylines.length), 935); label('BET', 935);
+    value(fmt(bet()), 1169); label('TOTAL BET', 1169);
+    value(fmt(G.win > 0 ? wv : 0), 1431, G.win > 0 ? '#ffd45a' : '#fff'); label('WIN', 1431);
+    // bet - / + (locked during a round)
+    ctx.save(); ctx.globalAlpha = G.busy ? .4 : 1;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(btn.minus.x - 30, btn.minus.y - 18, 120, 36, 18); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(935, btn.minus.y - 16); ctx.lineTo(935, btn.minus.y + 16); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.fillRect(btn.minus.x - 11, btn.minus.y - 3, 22, 6); ctx.fillRect(btn.plus.x - 11, btn.plus.y - 3, 22, 6); ctx.fillRect(btn.plus.x - 3, btn.plus.y - 11, 6, 22);
+    ctx.restore();
+    // spin and autoplay
+    const b = btn.spin;
+    ctx.save(); ctx.fillStyle = G.busy && !G.spinning ? '#333' : '#000'; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill(); ctx.lineWidth = 7; ctx.strokeStyle = '#fff'; ctx.stroke();
+    if (G.spinning) { ctx.translate(b.x, b.y); ctx.rotate(t * 8); ctx.strokeStyle = '#ffd45a'; ctx.lineWidth = 7; ctx.beginPath(); ctx.arc(0, 0, b.r - 14, 0, 1.6); ctx.stroke(); ctx.beginPath(); ctx.arc(0, 0, b.r - 14, Math.PI, Math.PI + 1.6); ctx.stroke(); }
+    ctx.restore();
+    ctx.save(); ctx.font = `50px ${BLOCK}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = G.busy && !G.spinning ? '#999' : '#fff'; ctx.fillText(G.busy && !G.spinning ? 'SKIP' : 'SPIN', b.x, b.y + 2); ctx.restore();
+    const ab = btn.auto;
+    ctx.save(); ctx.fillStyle = G.autoplay ? '#ffd45a' : '#000'; ctx.beginPath(); ctx.roundRect(ab.x - 70, ab.y - 17, 140, 34, 17); ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke(); ctx.restore();
+    uiText('AUTOPLAY', ab.x, ab.y + 1, 22, G.autoplay ? '#000' : '#fff', 'center', 700);
+    // free spins: the special symbol card, bottom left over the clouds
+    if (inFS && fs.special != null) {
+      const cx = 94, cy = 780;
+      ctx.save(); const gg = ctx.createLinearGradient(0, cy - 120, 0, cy + 120); gg.addColorStop(0, '#c2202a'); gg.addColorStop(1, '#6a0a12');
+      ctx.fillStyle = gg; ctx.beginPath(); ctx.roundRect(cx - 82, cy - 112, 164, 224, 18); ctx.fill(); ctx.lineWidth = 5; ctx.strokeStyle = '#ffd34a'; ctx.stroke(); ctx.restore();
+      uiText('EXPANDING', cx, cy - 88, 20, '#ffe9a8', 'center', 700);
+      const img = A.symbol(fs.special), k = Math.min(140 / img.width, 130 / img.height); ctx.drawImage(img, cx - img.width * k / 2, cy + 10 - img.height * k / 2, img.width * k, img.height * k);
+      uiText('SYMBOL', cx, cy + 92, 20, '#ffe9a8', 'center', 700);
+    }
+  }
+
+  /* ------------------------------------------------------------ banners & modals */
+  function dimmer(a) { if (a > 0) { ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); ctx.restore(); } }
+  function rays(cx, cy, t, col, alpha, n = 16, R = 900) {
+    ctx.save(); ctx.globalAlpha = alpha; ctx.translate(cx, cy); ctx.rotate(t * .5);
+    for (let i = 0; i < n; i++) { ctx.rotate(Math.PI * 2 / n); const g = ctx.createLinearGradient(0, 0, 0, -R); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-R * .08, -R); ctx.lineTo(R * .08, -R); ctx.closePath(); ctx.fill(); }
+    ctx.restore();
+  }
+  function ribbon(cx, cy, w, h, cols) {
+    ctx.save();
+    const g = ctx.createLinearGradient(0, cy - h / 2, 0, cy + h / 2); g.addColorStop(0, cols[0]); g.addColorStop(.5, cols[1]); g.addColorStop(1, cols[2]);
+    ctx.fillStyle = cols[2]; [-1, 1].forEach(s => { ctx.beginPath(); ctx.moveTo(cx + s * w * .42, cy - h * .2); ctx.lineTo(cx + s * w * .62, cy - h * .2); ctx.lineTo(cx + s * w * .55, cy + h * .15); ctx.lineTo(cx + s * w * .62, cy + h * .5); ctx.lineTo(cx + s * w * .42, cy + h * .5); ctx.closePath(); ctx.fill(); });
+    ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 8;
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(cx - w / 2, cy - h / 2); ctx.quadraticCurveTo(cx, cy - h * .8, cx + w / 2, cy - h / 2); ctx.lineTo(cx + w / 2, cy + h / 2); ctx.quadraticCurveTo(cx, cy + h * .2, cx - w / 2, cy + h / 2); ctx.closePath(); ctx.fill();
+    ctx.shadowBlur = 0; ctx.strokeStyle = '#ffd34a'; ctx.lineWidth = 5; ctx.stroke();
+    ctx.restore();
+  }
+  function tierFx(fx, dt) {
+    const p = n => Math.random() < n * dt;
+    if (fx === 'fountain' || fx === 'cascade' || fx === 'fireworks') { if (p(fx === 'fountain' ? 18 : 30)) emit('coin', W / 2 + (Math.random() - .5) * 200, H + 20, 1, { spread: .7, speed: 1500, gravity: 1500, life: 2.2, size: 24 }); }
+    if (fx === 'cascade') { if (p(30)) { emit('coin', W * .2, H + 20, 1, { angle: -Math.PI / 2 + .25, spread: .4, speed: 1500, gravity: 1500, life: 2.2, size: 24 }); emit('coin', W * .8, H + 20, 1, { angle: -Math.PI / 2 - .25, spread: .4, speed: 1500, gravity: 1500, life: 2.2, size: 24 }); } }
+    if (fx === 'drop' || fx === 'epic' || fx === 'lasers') { if (p(fx === 'drop' ? 22 : 40)) emit('coin', Math.random() * W, -40, 1, { angle: Math.PI / 2, spread: .3, speed: 200, gravity: 900, life: 2.5, size: 24 }); }
+    if (fx === 'fireworks' || fx === 'epic' || fx === 'lasers') { if (p(fx === 'epic' ? 3 : 1.8)) emit('rocket', W * (.15 + Math.random() * .7), H, 1, { spread: .25, speed: 1100, gravity: 600, life: .9 + Math.random() * .4, burst: ['#ff5a5a', '#ffd34a', '#ff9a3a', '#ffffff'][Math.floor(Math.random() * 4)] }); }
+    if (fx !== 'fountain' && p(20)) emit('cracker', Math.random() < .5 ? 0 : W, H * .7, 1, { angle: -Math.PI / 2, spread: 1.2, speed: 1000, gravity: 900, life: 2.4, size: 30 });
+  }
+  function drawBanner(t, dt) {
+    const b = G.banner; if (!b) return;
+    const f = (t - b.t0) * C.fps * G.speed, [fi, fl, fo] = FR.banner, total = fi + fl + fo;
+    if (G.skip !== b.tok) { b.tok = G.skip; if (f < fi + fl) b.t0 = t - sec(fi + fl); }
+    const tier = C.winTiers[b.tier];
+    let dim = .75, scale, alpha = 1, dy = 0;
+    if (f < fi) { dim = .75 * f / fi; const u = f / fi; scale = u < .66 ? 1.2 * ease.out(u / .66) : 1.2 - .2 * ease.inOut((u - .66) / .34); }
+    else if (f < fi + fl) scale = 1 + .03 * Math.sin((f - fi) / 30 * Math.PI * 2);
+    else { const u = clamp((f - fi - fl) / fo, 0, 1); dim = .75 * (1 - u); scale = 1 + .3 * u; alpha = 1 - u; dy = -120 * u; }
+    if (!b.hit && f >= 15) { b.hit = true; SND.play('banner_hit'); }
+    const [ta, tb] = FR.bannerTally, tu = clamp((f - ta) / (tb - ta), 0, 1), shown = b.amount * ease.out(tu);
+    if (tu > 0 && tu < 1 && t - (b.tick || 0) > .07) { b.tick = t; SND.play('sfx_countup_loop'); }
+    if (tu >= 1 && !b.ended) { b.ended = true; SND.play('sfx_countup_end'); }
+    if (f >= fi + fl && !b.snapped) { b.snapped = true; setWin(G.spinBaseWin + b.amount, true); }
+    dimmer(dim);
+    if (f < fi + fl) tierFx(tier.fx, dt);
+    ctx.save(); ctx.globalAlpha = alpha;
+    rays(W / 2, H * .42, t, 'rgba(255,200,90,.35)', alpha * .8, tier.fx === 'lasers' || tier.fx === 'epic' ? 24 : 16);
+    const img = A.real['banner_win_' + tier.id] && A.get('banner_win_' + tier.id);
+    const k = img ? Math.min(W * .5 / img.width, H * .6 / img.height) : 1, ih = img ? img.height * k : 190, cy = img ? H * .36 : H * .4;
+    ctx.translate(W / 2, cy + dy); ctx.scale(scale, scale);
+    if (img) ctx.drawImage(img, -img.width * k / 2, -ih / 2, img.width * k, ih);
+    else { ribbon(0, 0, 1100, 190, ['#e8402a', '#b0101a', '#6a0a0a']); blockText(tier.label, 0, -6, 110, { colors: ['#ffffff', tier.colors[0], tier.colors[1]], maxW: 1000 }); }
+    ctx.restore();
+    blockText(fmt(shown), W / 2, (img ? cy + ih / 2 + 78 : H * .64) + dy, img ? 130 : 150, { alpha, scale: f < fi ? ease.out(f / fi) : 1, maxW: W * .8 });
+    if (f >= total) { const r = b.resolve; G.banner = null; r(); }
+  }
+  function panel(w, h) {
+    ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 40; const g = ctx.createLinearGradient(0, -h / 2, 0, h / 2); g.addColorStop(0, '#c8202a'); g.addColorStop(1, '#5a060c');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2, w, h, 36); ctx.fill(); ctx.shadowBlur = 0;
+    ctx.lineWidth = 9; ctx.strokeStyle = '#ffd34a'; ctx.stroke(); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,220,120,.7)'; ctx.beginPath(); ctx.roundRect(-w / 2 + 22, -h / 2 + 22, w - 44, h - 44, 24); ctx.stroke();
+    // corner knots
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sy]) => { ctx.save(); ctx.translate(sx * (w / 2 - 22), sy * (h / 2 - 22)); ctx.rotate(Math.PI / 4); ctx.fillStyle = '#ffd34a'; ctx.fillRect(-12, -12, 24, 24); ctx.fillStyle = '#a8101a'; ctx.fillRect(-6, -6, 12, 12); ctx.restore(); });
+  }
+  // free spins intro (pulse + rays, START), special symbol pick, retrigger, summary (COLLECT)
+  function drawModal(t, dt) {
+    const m = G.modal; if (!m) return;
+    const [fi, fl0, fo] = FR.banner, fl = m.kind === 'pick' ? FR.pick[0] + FR.pick[1] : fl0;
+    let f = (t - m.t0) * C.fps * G.speed;
+    if (f >= fi + fl && !m.release) { if (C.autoContinueModals || G.autoplay) m.release = true; else { m.t0 = t - sec(fi + fl - 1); f = fi + fl - 1; } }
+    if (G.skip !== m.tok) { m.tok = G.skip; if (m.kind !== 'pick' && f > fi * .5 && f < fi + fl) { m.release = true; m.t0 = t - sec(fi + fl); f = fi + fl; } }
+    const pop = m.kind !== 'outro';
+    let scale = 1, alpha = 1, dy = 0, dim = .7;
+    if (f < fi) { const u = f / fi; dim = .7 * u; if (pop) scale = ease.elastic(u); else dy = -H * (1 - ease.out(u)); }
+    else if (f < fi + fl) scale = pop ? 1 + .03 * (.5 - .5 * Math.cos((f - fi) / 30 * Math.PI * 2)) : 1;
+    else { const u = clamp((f - fi - fl) / fo, 0, 1); dim = .7 * (1 - u); alpha = 1 - u; scale = pop ? 1 + .15 * u : 1 - .2 * u; }
+    dimmer(dim);
+    ctx.save(); ctx.globalAlpha = alpha;
+    if (pop) { rays(W / 2, H * .45, t, 'rgba(255,200,90,.45)', alpha); if (f > fi && f < fi + fl && Math.random() < .5) emit('spark', W / 2 + (Math.random() - .5) * 900, H * .45 + (Math.random() - .5) * 400, 1, { angle: 0, spread: 6, speed: 60, gravity: 0, life: .7, size: 8, color: ['#fff6c8', '#ffd34a'] }); }
+    ctx.translate(W / 2, H * .45 + dy); ctx.scale(scale, scale);
+    const pw = 1000, ph = m.kind === 'pick' ? 640 : 560;
+    panel(pw, ph);
+    const lamp = A.real.fx_lantern ? A.get('fx_lantern') : null;
+    if (lamp && m.kind !== 'pick') [-1, 1].forEach(s => { const lw = 120, lh = lamp.height * lw / lamp.width; ctx.save(); ctx.translate(s * (pw / 2 - 10), -ph / 2 - 40); ctx.rotate(Math.sin(t * 2 + s) * .08); ctx.drawImage(lamp, -lw / 2, 0, lw, lh); ctx.restore(); });
+    if (m.kind === 'intro') {
+      blockText('CONGRATULATIONS!', 0, -170, 70, { maxW: 820 });
+      blockText(m.text1, 0, -50, 60, { colors: ['#ffffff', '#fff0c8'], maxW: 860 });
+      blockText(m.text2, 0, 70, 120, { maxW: 860 });
+    } else if (m.kind === 'pick') {
+      // the special symbol: symbols cycle fast, slow down and stop on the pick
+      blockText('SPECIAL EXPANDING SYMBOL', 0, -250, 52, { maxW: 860 });
+      const fp = clamp(f - fi, 0, FR.pick[0]), u = fp / FR.pick[0], n = C.regular.length;
+      const steps = 3 * n + ((m.special - m.start + n) % n), idx = (m.start + Math.floor(steps * (1 - Math.pow(1 - u, 2.2)) + (u >= 1 ? 0 : 0))) % n;
+      const shown = u >= 1 ? m.special : idx;
+      if (shown !== m.last) { m.last = shown; SND.play(u >= 1 ? 'sfx_pick_stop' : 'sfx_pick_tick'); if (u >= 1) for (let i = 0; i < 30; i++) emit('spark', W / 2, H * .45, 1, { angle: 0, spread: 7, speed: 600, gravity: 300, life: .9, size: 10, color: ['#fff6c8', '#ffd34a', '#ff5a3a'] }); }
+      ctx.save(); ctx.fillStyle = 'rgba(40,0,0,.55)'; ctx.beginPath(); ctx.roundRect(-210, -195, 420, 340, 24); ctx.fill(); ctx.lineWidth = 6; ctx.strokeStyle = u >= 1 ? '#fff3a0' : '#ffd34a'; if (u >= 1) { ctx.shadowColor = '#ffd34a'; ctx.shadowBlur = 30; } ctx.stroke(); ctx.restore();
+      const img = A.symbol(shown), k = Math.min(380 / img.width, 300 / img.height) * (u >= 1 ? 1 + .06 * Math.sin(t * 6) : 1);
+      ctx.drawImage(img, -img.width * k / 2, -25 - img.height * k / 2, img.width * k, img.height * k);
+      blockText(u >= 1 ? C.symbolNames[shown].toUpperCase() : ' ', 0, 200, 54, { colors: ['#ffffff', '#ffe9a8'], maxW: 860 });
+      blockText(u >= 1 ? 'EXPANDS TO FILL ITS REELS AND PAYS ON ALL LINES' : ' ', 0, 262, 28, { colors: ['#ffffff', '#ffe9a8'], maxW: 880 });
+    } else if (m.kind === 'retrigger') {
+      blockText((C.texts && C.texts.retrigger) || 'MORE FREE SPINS!', 0, -110, 64, { maxW: 860 });
+      blockText(m.text2, 0, 30, 120, { maxW: 860 });
+    } else {
+      const tu = clamp((f - fi) / FR.summaryTally, 0, 1), shown = (m.amount || 0) * ease.out(tu);
+      if (tu > 0 && tu < 1 && t - (m.tick || 0) > .07) { m.tick = t; SND.play('sfx_countup_loop'); }
+      if (tu >= 1 && !m.ended) { m.ended = true; SND.play('sfx_countup_end'); }
+      blockText('CONGRATULATIONS!', 0, -170, 70, { maxW: 820 });
+      blockText('YOU HAVE WON', 0, -70, 54, { colors: ['#ffffff', '#fff0c8'] });
+      blockText(fmt(shown), 0, 40, 120, { maxW: 860 });
+      blockText(m.capped ? `MAX WIN ${C.maxWin}× REACHED` : `IN ${m.spins} FREE SPINS`, 0, 140, 46, { colors: ['#ffffff', '#fff0c8'], maxW: 860 });
+    }
+    if (m.kind !== 'pick') {
+      const bl = m.kind === 'outro' ? 'COLLECT' : m.kind === 'retrigger' ? 'CONTINUE' : 'START', pulse = 1 + .04 * Math.sin(t * 6), by = ph / 2 + 20;
+      ctx.save(); ctx.translate(0, by); ctx.scale(pulse, pulse); ctx.fillStyle = '#000'; ctx.beginPath(); ctx.roundRect(-160, -40, 320, 80, 40); ctx.fill(); ctx.lineWidth = 6; ctx.strokeStyle = '#fff'; ctx.stroke(); ctx.restore();
+      ctx.save(); ctx.font = `48px ${BLOCK}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff'; ctx.fillText(bl, 0, by + 2); ctx.restore();
+    }
+    ctx.restore();
+    if (f >= fi + fl && !m.outroCalled) { m.outroCalled = true; if (m.onOutro) m.onOutro(); }
+    if (f >= fi + fl + fo) { const r = m.resolve; G.modal = null; r(); }
+  }
+  // to free spins: red and gold firecracker curtain; back to base: zoom out
+  function drawTransition(t) {
+    const tr = G.trans; if (!tr) return;
+    const f = (t - tr.t0) * C.fps * G.speed;
+    if (tr.kind === 'toFree') {
+      const [a, b, c] = FR.transToFree;
+      const cover = f < a ? ease.out(f / a) : f < a + b ? 1 : 1 - ease.inOut((f - a - b) / c);
+      if (f >= a && !tr.swapped) { tr.swapped = true; tr.onCovered && tr.onCovered(); }
+      const half = W / 2 * cover, folds = 9, fw = half / folds;
+      for (const side of [0, 1]) for (let i = 0; i < folds; i++) {
+        const x = side === 0 ? i * fw : W - (i + 1) * fw;
+        const g = ctx.createLinearGradient(x, 0, x + fw, 0), dark = (i + side) % 2;
+        g.addColorStop(0, dark ? '#6a0f1e' : '#c2283a'); g.addColorStop(.5, dark ? '#9a1a2c' : '#ff4a50'); g.addColorStop(1, dark ? '#4a0812' : '#a01a2a');
+        ctx.fillStyle = g; ctx.fillRect(x, 0, fw + 1, H); ctx.fillStyle = '#ffd34a'; ctx.fillRect(x, 0, 3, H);
+      }
+      if (cover > .95) { blockText('FREE SPINS', W / 2, H * .45, 170); if (Math.random() < .4) popAt(W / 2 + (Math.random() - .5) * 1200, H * (.2 + Math.random() * .6)); }
+      if (f >= a + b + c) { G.trans = null; tr.resolve(); }
+    } else {
+      const u = clamp(f / FR.transToBase, 0, 1);
+      G.camera = 1.08 - .08 * ease.out(u);
+      if (u >= 1) { G.camera = 1; G.trans = null; tr.resolve(); }
+    }
+  }
+  function popAt(x, y) { emit('spark', x, y, 18, { angle: 0, spread: 7, speed: 420, gravity: 250, life: .8, size: 9, color: ['#fff6c8', '#ffd34a', '#ff5a3a'] }); SND.play('sfx_cracker_pop'); }
+
+  /* ------------------------------------------------------------ paytable / rules (info button) */
+  function drawInfo() {
+    if (!G.info) return;
+    dimmer(.88);
+    ctx.save(); ctx.fillStyle = '#3a0a0e'; ctx.strokeStyle = '#ffd34a'; ctx.lineWidth = 4; ctx.beginPath(); ctx.roundRect(80, 36, W - 160, H - 72, 30); ctx.fill(); ctx.stroke(); ctx.restore();
+    blockText(`${C.title.toUpperCase()}  ·  PAYTABLE`, W / 2, 86, 50, { maxW: W - 320 });
+    const b = bet(), syms = [SC, ...C.regular];
+    syms.forEach((s, i) => {
+      const col = i % 4, row = Math.floor(i / 4), x = 150 + col * 280, y = 200 + row * 205;
+      const img = A.symbol(s), k = Math.min(130 / img.width, 120 / img.height); ctx.drawImage(img, x - img.width * k / 2, y - img.height * k / 2, img.width * k, img.height * k);
+      const pays = s === SC ? C.scatterPays : C.paytable[s];
+      Object.keys(pays).map(Number).sort((a, b2) => b2 - a).forEach((n, j) => uiText(`${n}  ${fmt(pays[n] * b)}`, x + 76, y - 42 + j * 32, 24, '#fff', 'left', 600));
+    });
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.font = `500 21px ${UIF}`; ctx.fillStyle = 'rgba(255,240,220,.95)';
+    const rules = [
+      `The ${C.symbolNames[SC]} is Wild and substitutes for all symbols. 3, 4 or 5 Scatters anywhere pay ${fmt(C.scatterPays[3] * b)}, ${fmt(C.scatterPays[4] * b)} or ${fmt(C.scatterPays[5] * b)} and award ${C.freeSpins} free spins.`,
+      `Before free spins start, one symbol is picked at random as the special expanding symbol. When it lands on enough reels for a win, it expands to fill those reels and pays on all ${C.paylines.length} lines, even on reels that are not next to each other.`,
+      `3 or more Scatters during free spins award ${C.freeSpinsRetrigger} more. Free spins use the bet of the spin that triggered them.`,
+      `Line wins pay left to right on adjacent reels; only the highest win per line is paid. Wins on different lines and scatter wins are added. Maximum win ${C.maxWin.toLocaleString('en-US')}× the total bet per round.`
+    ];
+    let yy = 172; rules.forEach(r => { yy = wrap(r, 1250, yy, 560, 30) + 48; });
+    // 10 payline thumbnails
+    C.paylines.forEach((line, i) => {
+      const bx = 1250 + (i % 5) * 112, by = 790 + Math.floor(i / 5) * 100, s = 18;
+      ctx.fillStyle = 'rgba(255,255,255,.1)'; ctx.fillRect(bx, by, 5 * s, 3 * s);
+      line.forEach((r, c) => { ctx.fillStyle = LINE_COLORS[i]; ctx.fillRect(bx + c * s + 2, by + r * s + 2, s - 4, s - 4); });
+      uiText(String(i + 1), bx + 2.5 * s, by + 3 * s + 16, 16, '#fff', 'center', 600);
+    });
+    uiText('Click anywhere to close', W / 2, H - 70, 20, 'rgba(255,230,200,.75)', 'center', 600);
+    ctx.textBaseline = 'alphabetic';
+  }
+  function wrap(text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW) { ctx.fillText(line, x, y); line = w; y += lh; } else line = test; }
+    ctx.fillText(line, x, y); return y;
+  }
+
+  /* ------------------------------------------------------------ frame loop */
+  let lastT = now();
+  function frame() {
+    const t = now(), dt = Math.min(.05, t - lastT); lastT = t;
+    updateReels(t);
+    G.env = clamp(G.env + (G.envTarget - G.env) * Math.min(1, dt * (G.trans && G.trans.kind === 'toBase' ? 1.6 : 6)), 0, 1);
+    G.dim = clamp(G.dim + ((G.dimTarget || 0) - G.dim) * Math.min(1, dt * 8), 0, 1);
+    ctx.save();
+    if (G.camera !== 1) { ctx.translate(W / 2, H / 2); ctx.scale(G.camera, G.camera); ctx.translate(-W / 2, -H / 2); }
+    drawEnvironment(t);
+    drawGrid(t);
+    drawExpanded(t);
+    drawFuses(t);
+    drawAnticipation(t);
+    drawLines(t);
+    ctx.restore();
+    drawHUD(t);
+    drawBanner(t, dt);
+    drawModal(t, dt);
+    drawParticles(dt);
+    drawTransition(t);
+    drawInfo();
+    requestAnimationFrame(frame);
+  }
+
+  /* ------------------------------------------------------------ step presentation */
+  function setWin(v, instant) { G.winFrom = instant ? v : G.win; G.win = Math.round(v * 100) / 100; G.winT0 = instant ? 0 : now(); }
+  function clearLines() { if (G.lines) G.lines.fade = now(); G.labels = []; }
+  function highlight(cells, t0) { G.dimTarget = 1; cells.forEach(([c, r]) => { G.fx[c][r].win = t0; G.fx[c][r].keep = true; }); }
+  function unhighlight() { G.dimTarget = 0; G.fx.forEach(col => col.forEach(f => { f.win = null; f.keep = false; f.pulse = null; })); }
+  const symWinFrames = () => FR.symWin[0] + FR.symWin[1] + FR.symWin[2];
+
+  // all winning lines together, then each line on its own once (only when more than one line won)
+  async function showWin(step) {
+    clearLines(); await wait(.02);
+    let t0 = now();
+    G.lines = { lines: step.wins.map(w => w.line), t0 };
+    const cells = []; step.wins.forEach(w => w.positions.forEach(p => cells.push(p)));
+    highlight(cells, t0);
+    G.labels = [{ x: x0 + gw / 2, y: y0 + gh / 2, t0, text: fmt(step.amount), size: 70 }];
+    SND.play('sfx_symbol_win_line'); setWin(G.win + step.amount);
+    await waitF(symWinFrames(), true);
+    if (step.wins.length > 1 && !G.autoplay) {
+      for (const w of step.wins) {
+        if (G.skipLines) break;
+        clearLines(); unhighlight(); await wait(.02);
+        t0 = now(); G.lines = { lines: [w.line], t0 }; highlight(w.positions, t0);
+        const [lc, lr] = w.positions[w.positions.length - 1], [cx, cy] = cellCenter(lc, lr);
+        G.labels = [{ x: cx, y: cy + ch * .3, t0, text: fmt(w.amount), size: 44 }];
+        const tok = G.skip; await waitF(FR.lineCycle, true); if (G.skip !== tok) break;
+      }
+    }
+    unhighlight(); clearLines();
+  }
+  async function showScatter(step) {
+    clearLines(); const t0 = now();
+    highlight(step.positions, t0);
+    step.positions.forEach(([c, r]) => { G.fx[c][r].pulse = t0; });
+    SND.play('sfx_scatter_win');
+    if (step.amount) { G.labels = [{ x: x0 + gw / 2, y: y0 + gh / 2, t0, text: fmt(step.amount), size: 70 }]; setWin(G.win + step.amount); }
+    await waitF(symWinFrames());
+    unhighlight(); clearLines();
+    if (step.freeSpins) {
+      // light every Scatter's fuse: the firecracker string unrolls down the reel and pops
+      const reels = [...new Set(step.positions.map(p => p[0]))];
+      SND.play('sfx_fuse');
+      reels.forEach((c, i) => setTimeout(() => G.fuses.push({ c, t0: now() }), i * 120 / G.speed));
+      await waitF(FR.fuse[0] + 4);
+      reels.forEach(c => popCrackers(c, 8));
+      await waitF(FR.fuse[1] + FR.fuse[2]);
+    }
+  }
+  async function showExpand(step) {
+    clearLines();
+    const [fl, gr, st] = FR.expand, t0 = now();
+    // 1. the special symbols flash
+    highlight(step.cells, t0); SND.play('sfx_expand_flash');
+    await waitF(fl + 8);
+    unhighlight();
+    // 2. each reel grows from its special symbols to the full reel (left to right)
+    for (const c of step.reels) {
+      const rows = step.cells.filter(p => p[0] === c).map(p => p[1]);
+      G.expanded[c] = { sym: step.sym, y0: y0 + Math.min(...rows) * ch, y1: y0 + (Math.max(...rows) + 1) * ch, t1: now() };
+      SND.play('sfx_expand');
+      const [cx] = cellCenter(c, 1); emit('spark', cx, y0 + gh / 2, 22, { angle: 0, spread: 7, speed: 500, gravity: 200, life: .7, size: 10, color: ['#fff6c8', '#ffd34a'] });
+      await waitF(gr * .6);
+    }
+    await waitF(gr * .4 + st);
+    for (let c = 0; c < C.reels; c++) if (step.reels.includes(c)) for (let r = 0; r < C.rows; r++) G.board[c][r] = step.sym;
+    // 3. all lines pay
+    const t2 = now(); G.lines = { lines: C.paylines.map((_, i) => i), t0: t2 };
+    G.labels = [{ x: x0 + gw / 2, y: y0 + gh / 2, t0: t2, text: fmt(step.amount), size: 84 }];
+    SND.play('sfx_symbol_win_line'); setWin(G.win + step.amount);
+    await waitF(FR.expandLines, true);
+    clearLines();
+  }
+
+  async function playSteps(steps) {
+    for (const s of steps) {
+      if (s.type === 'win') await showWin(s);
+      else if (s.type === 'scatter') await showScatter(s);
+      else if (s.type === 'expand') await showExpand(s);
+    }
+  }
+
+  function bigWinBanner(amount) {
+    const tier = engine.tierOf(amount, bet());
+    if (tier < 0) return Promise.resolve();
+    return new Promise(resolve => { G.banner = { tier, amount, t0: now(), tok: G.skip, resolve }; });
+  }
+  function modal(o) { return new Promise(resolve => { G.modal = Object.assign({ t0: now(), tok: G.skip, resolve }, o); }); }
+  function transition(kind, onCovered) { return new Promise(resolve => { G.trans = { kind, t0: now(), resolve, onCovered }; }); }
+
+  /* ------------------------------------------------------------ spin flow */
+  async function spinOnce(item, inFS) {
+    const res = director.build(item || { type: 'random' }, { bet: bet(), inFreeSpins: inFS, special: G.fs.special });
+    applySpeed();
+    G.fx = newFx(); G.lines = null; G.labels = []; G.expanded = {}; G.fuses.forEach(f => { f.fade = f.fade || now(); });
+    if (!inFS) { G.balance = Math.round((G.balance - bet()) * 100) / 100; setWin(0, true); }
+    G.spinBaseWin = G.win;      // the HUD win box keeps the round total during free spins
+    SND.play('sfx_spin_button_click'); SND.play('sfx_reel_spin');
+    G.spinning = true; G.onChange();
+    await startReels(res.start, inFS, G.fs.special);
+    G.spinning = false; G.onChange();
+    await wait(.12 / G.speed);
+    await playSteps(res.steps);
+    // the round's big win banner (free spins: per spin, the summary shows the total)
+    await bigWinBanner(res.total);
+    return res;
+  }
+  function nextItem() {
+    const it = G.queue.length ? G.queue.shift() : { type: 'random' };
+    G.onChange(); return it;
+  }
+
+  // a spin must be affordable: lower the bet to the highest one the balance covers, or refill the demo balance
+  function ensureFunds() {
+    if (G.balance >= bet() - 1e-9) return;
+    if (G.balance < C.bets[0] - 1e-9) {
+      G.balance = C.startBalance; G.notice = { text: 'DEMO BALANCE REFILLED', t0: performance.now() };
+    } else {
+      let i = G.betIndex; while (i > 0 && C.bets[i] > G.balance + 1e-9) i--;
+      G.betIndex = i; G.notice = { text: 'BET LOWERED TO ' + fmt(bet()), t0: performance.now() };
+    }
+    G.onChange();
+  }
+  async function play() {
+    if (G.busy || G.info) return false;
+    ensureFunds();
+    G.busy = true; G.onChange(); SND.init(root.ASSET_MANIFEST); SND.playMusic('bgm_basegame_loop');
+    try {
+      const base = await spinOnce(nextItem(), false);
+      let roundWin = base.total;
+      if (base.freeSpins) roundWin = await freeSpins(base.freeSpins, roundWin, base.special != null ? base.special : engine.pickSpecial());
+      roundWin = Math.min(roundWin, C.maxWin * bet());
+      G.balance = Math.round((G.balance + roundWin) * 100) / 100;
+      setWin(roundWin, true);
+    } catch (e) {
+      // an error mid-round must not leave the game stuck on a banner, modal, transition or the free-spins look
+      console.error(e);
+      G.spinning = false; G.banner = null; G.modal = null; G.trans = null; G.antic = null; G.fuses = []; G.expanded = {};
+      G.fs.active = false; G.fs.special = null; G.envTarget = 0; G.env = 0; G.autoplay = false; G.dimTarget = 0;
+    }
+    G.busy = false; G.onChange(); applySpeed();
+    return true;
+  }
+  async function freeSpins(count, roundWin, special) {
+    const fs = G.fs, baseWin = roundWin;
+    Object.assign(fs, { left: count, played: 0, total: 0, awarded: count, capped: false, special: null });
+    await modal({ kind: 'intro', text1: 'YOU HAVE WON', text2: `${count} FREE SPINS` });
+    await modal({ kind: 'pick', special, start: Math.floor(Math.random() * C.regular.length) });
+    await transition('toFree', () => { fs.active = true; fs.special = special; G.envTarget = 1; G.env = 1; G.fuses = []; G.fx = newFx(); SND.playMusic('bgm_freegame_loop'); });
+    while (fs.left > 0) {
+      fs.left--; fs.played++;
+      await wait(.35 / G.speed);
+      const r = await spinOnce(nextItem(), true);
+      fs.total = Math.round((fs.total + r.total) * 100) / 100; roundWin += r.total;
+      if (roundWin >= C.maxWin * bet()) {
+        // max win cap: stop the round, the summary shows the capped amount
+        roundWin = C.maxWin * bet(); fs.total = Math.round((roundWin - baseWin) * 100) / 100; fs.capped = true; fs.left = 0; break;
+      }
+      if (r.freeSpins) {
+        await modal({ kind: 'retrigger', text2: `+${r.freeSpins} FREE SPINS` });
+        fs.left += r.freeSpins; fs.awarded += r.freeSpins;
+        G.fuses.forEach(f => { f.fade = f.fade || now(); });
+      }
+    }
+    await wait(.4 / G.speed);
+    await modal({ kind: 'outro', amount: fs.total, spins: fs.played, capped: fs.capped, onOutro: () => { fs.active = false; fs.special = null; G.envTarget = 0; G.expanded = {}; } });
+    await transition('toBase');
+    SND.playMusic('bgm_basegame_loop');
+    return roundWin;
+  }
+  let autoLoop = 0;    // id of the running autoplay loop, so toggling AUTO off and on never runs two loops
+  async function autoplayLoop() {
+    G.autoplay = !G.autoplay; G.onChange();
+    const me = ++autoLoop;
+    while (G.autoplay && me === autoLoop) { await play(); if (G.autoplay && me === autoLoop) await wait(.5); }
+  }
+  async function playQueue(n) {
+    G.autoplay = true; G.onChange();
+    const me = ++autoLoop;
+    let i = 0; const max = n ?? G.queue.length;
+    // stop once the list is used up: free spins consume list items inside a single round
+    while (G.autoplay && me === autoLoop && i < max && (i === 0 || G.queue.length)) { await play(); i++; if (i < max && G.queue.length) await wait(.8); }
+    if (me === autoLoop) { G.autoplay = false; G.onChange(); }
+  }
+
+  /* ------------------------------------------------------------ input */
+  cv.addEventListener('pointerdown', e => {
+    SND.init(root.ASSET_MANIFEST);
+    const rc = cv.getBoundingClientRect(), x = (e.clientX - rc.left) / rc.width * W, y = (e.clientY - rc.top) / rc.height * H;
+    if (G.info) { G.info = false; return; }
+    const hit = b => Math.hypot(x - b.x, y - b.y) <= b.r * 1.15;
+    if (hit(btn.spin)) { if (!G.busy) play(); else G.skip++; return; }
+    if (Math.abs(x - btn.auto.x) < 72 && Math.abs(y - btn.auto.y) < 20) { autoplayLoop(); return; }
+    if (hit(btn.info)) { if (!G.busy) G.info = true; return; }
+    if (hit(btn.sound)) { SND.setMuted(!SND.muted); return; }
+    if (hit(btn.minus)) { if (!G.busy) { G.betIndex = Math.max(0, G.betIndex - 1); G.onChange(); } return; }
+    if (hit(btn.plus)) { if (!G.busy) { G.betIndex = Math.min(C.bets.length - 1, G.betIndex + 1); G.onChange(); } return; }
+    G.skip++;
+  });
+  document.addEventListener('keydown', e => {
+    if (e.code !== 'Space') return;
+    const tg = e.target.tagName; if (tg === 'INPUT' || tg === 'SELECT' || tg === 'BUTTON' || tg === 'TEXTAREA') return;
+    e.preventDefault(); SND.init(root.ASSET_MANIFEST); if (G.info) G.info = false; else if (G.busy) G.skip++; else play();
+  });
+
+  /* ------------------------------------------------------------ boot */
+  async function boot() {
+    const splash = root.Splash && C.splash && C.splash.enabled && !/[?&]nosplash\b/.test(location.search) ? root.Splash : null;
+    if (splash) splash.start(C);
+    try { await Promise.race([Promise.all([document.fonts.load(`80px ${BLOCK}`), document.fonts.load(`700 40px ${UIF}`)]), new Promise(r => setTimeout(r, 2500))]); } catch (e) {}
+    try { G.assetInfo = await A.load(root.ASSET_MANIFEST, W, H, L, splash && splash.progress); }
+    catch (e) { console.error('asset load failed, starting with placeholders', e); G.assetInfo = G.assetInfo || { missing: [], loaded: 0 }; }
+    requestAnimationFrame(frame);
+    G.onChange();
+    if (splash) splash.finish();
+  }
+
+  root.Game = { G, C, engine, director, setSpeed, play, playQueue, autoplayLoop, boot, canvas: cv, bet, cellCenter };
+})(window);
+
+</script>
+<script>
+/* src/devpanel.js */
+/*
+ * Demo controls panel: outcome list, custom grid, recording, asset status.
+ * Not part of the game itself; hide it with the D key.
+ */
+(function (root) {
+  const { G, C, engine } = root.Game, A = root.Assets, OUT = root.Director.OUTCOMES;
+  const $ = s => document.querySelector(s), cv = root.Game.canvas;
+
+  /* ---------- canvas fit ---------- */
+  function fit() {
+    const r = $('#wrap').getBoundingClientRect(), k = Math.min((r.width - 24) / cv.width, (r.height - 24) / cv.height);
+    cv.style.width = Math.floor(cv.width * k) + 'px'; cv.style.height = Math.floor(cv.height * k) + 'px';
+  }
+  new ResizeObserver(fit).observe($('#wrap'));
+
+  /* ---------- panel toggle ---------- */
+  const togglePanel = show => { $('#app').classList.toggle('no-panel', !show); $('#showPanel').hidden = show; setTimeout(fit, 0); };
+  $('#hidePanel').onclick = () => togglePanel(false);
+  $('#showPanel').onclick = () => togglePanel(true);
+  document.addEventListener('keydown', e => { if (e.key.toLowerCase() === 'd' && !/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) togglePanel($('#app').classList.contains('no-panel')); });
+
+  /* ---------- queue ---------- */
+  G.queue = [{ type: 'small' }, { type: 'multi' }, { type: 'wildwin' }, { type: 'tease' }, { type: 'big' }, { type: 'trigger', special: 0 }, { type: 'expand' }, { type: 'random' }, { type: 'expand5' }];
+  function renderQueue() {
+    const q = $('#queue'); q.innerHTML = '';
+    if (!G.queue.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'Empty: spins are random.'; q.appendChild(li); }
+    G.queue.forEach((it, i) => {
+      const o = OUT[it.type] || OUT.random, li = document.createElement('li');
+      li.innerHTML = `<span class="lbl"><span class="dot" style="background:${o.color}"></span>${root.Director.describe(it, C)}</span>`;
+      const up = document.createElement('button'); up.textContent = '↑'; up.title = 'Move up'; up.disabled = i === 0;
+      up.onclick = () => { [G.queue[i - 1], G.queue[i]] = [G.queue[i], G.queue[i - 1]]; renderQueue(); };
+      const rm = document.createElement('button'); rm.textContent = '✕'; rm.title = 'Remove';
+      rm.onclick = () => { G.queue.splice(i, 1); renderQueue(); };
+      li.append(up, rm); q.appendChild(li);
+    });
+  }
+  const adds = $('#adds');
+  ['nowin', 'small', 'multi', 'wildwin', 'tease', 'nice', 'big', 'mega', 'superb', 'trigger', 'trigger4', 'trigger5', 'expand2', 'expand', 'expand5', 'retrigger', 'random'].forEach(k => {
+    const b = document.createElement('button'); b.innerHTML = `<span class="dot" style="background:${OUT[k].color}"></span>${OUT[k].label}`;
+    b.onclick = () => { G.queue.push({ type: k }); renderQueue(); }; adds.appendChild(b);
+  });
+  // symbol win: pick a symbol and a line length from the dropdowns, add it to the list
+  $('#swSym').innerHTML = Object.entries(C.symbolNames).filter(([k]) => k >= 0 && k <= 10).sort((a, b) => a[0] - b[0]).map(([k, n]) => `<option value="${k}">${n}</option>`).join('');
+  $('#swAdd').onclick = () => { G.queue.push({ type: 'symwin', sym: Number($('#swSym').value), len: Number($('#swLen').value) }); renderQueue(); };
+  $('#clearQueue').onclick = () => { G.queue = []; renderQueue(); };
+  $('#playQueue').onclick = () => { if (G.autoplay) { G.autoplay = false; update(); } else if (!G.busy) root.Game.playQueue(); };
+  $('#spin').onclick = () => root.Game.play();
+
+  /* ---------- custom grid ---------- */
+  const ED_SYMS = [...C.regular, C.SCATTER];
+  let pick = 2, edGrid = engine.randomGrid({ noScatter: true });
+  const thumb = id => { const im = A.symbol(id, C); if (!im) return ''; if (im.src) return im.src; const c = document.createElement('canvas'); c.width = c.height = 72; c.getContext('2d').drawImage(im, 0, 0, 72, 72); return c.toDataURL(); };
+  const thumbs = {};
+  function renderPalette() {
+    const p = $('#palette'); p.innerHTML = '';
+    ED_SYMS.forEach(id => { const b = document.createElement('button'); b.title = C.symbolNames[id]; b.setAttribute('aria-pressed', String(pick === id));
+      b.innerHTML = `<img alt="${C.symbolNames[id]}" src="${thumbs[id]}">`; b.onclick = () => { pick = id; renderPalette(); }; p.appendChild(b); });
+  }
+  function renderEditor() {
+    const ge = $('#gridEd'); ge.innerHTML = '';
+    for (let r = 0; r < C.rows; r++) for (let c = 0; c < C.reels; c++) {
+      const s = edGrid[c][r], b = document.createElement('button'); b.title = `Reel ${c + 1}, row ${r + 1}: ${C.symbolNames[s]}`;
+      b.innerHTML = `<img alt="${C.symbolNames[s]}" src="${thumbs[s]}">`;
+      b.onclick = () => { edGrid[c][r] = pick; renderEditor(); };
+      ge.appendChild(b);
+    }
+    const sp = edSpecial(), fs = sp != null;
+    const res = engine.resolveSpin(edGrid, { bet: root.Game.bet(), inFreeSpins: fs, special: sp });
+    const parts = [res.total > 0 ? `Pays <b>${C.currency}${res.total.toFixed(2)}</b> (${(res.total / root.Game.bet()).toFixed(1)}× bet)` : 'No win'];
+    const w = res.steps.find(s => s.type === 'win'), sc = res.steps.find(s => s.type === 'scatter'), ex = res.steps.find(s => s.type === 'expand');
+    if (w) parts.push(`${w.wins.length} line${w.wins.length > 1 ? 's' : ''}`);
+    if (sc) parts.push(`<b>${sc.count} Scatters → ${sc.freeSpins} free spins</b>`);
+    if (ex) parts.push(`<b>${C.symbolNames[ex.sym]} expands on ${ex.count} reels</b>`);
+    info(parts.join(' · '));
+  }
+  const info = h => { $('#edInfo').innerHTML = h; };
+  function edSpecial() { const v = $('#edSpecial').value; return v === '' ? null : Number(v); }
+  $('#edSpecial').innerHTML = '<option value="">Base game spin</option>' + C.regular.map(k => `<option value="${k}">Free spin, special: ${C.symbolNames[k]}</option>`).join('');
+  $('#edSpecial').onchange = renderEditor;
+  // a custom free spin plays inside free spins only; outside them the grid plays as a base spin
+  $('#addCustom').onclick = () => { G.queue.push({ type: 'custom', grid: edGrid.map(c => c.slice()) }); renderQueue(); };
+  $('#copyBoard').onclick = () => { edGrid = G.board.map(c => c.slice()); renderEditor(); };
+
+  /* ---------- speed ---------- */
+  $('#speed').oninput = e => { const v = Number(e.target.value); Game.setSpeed(v); $('#speedOut').textContent = v + '×'; $('#speedOut').title = G.busy ? 'applies from the next spin' : ''; };
+
+  /* ---------- recording ---------- */
+  let rec = null, chunks = [], t0 = 0, timer = 0, downloads = null;
+  function mime() {
+    for (const m of ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm'])
+      if (root.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m;
+    return '';
+  }
+  function startRec() {
+    if (rec) return true;
+    if (!root.MediaRecorder || !cv.captureStream) { $('#recOut').textContent = 'This browser cannot record the canvas. Use Chrome or Edge.'; return false; }
+    root.Audio2.init(root.ASSET_MANIFEST);
+    const tracks = [...cv.captureStream(C.fps || 30).getVideoTracks()];
+    if (root.Audio2.recDest) tracks.push(...root.Audio2.recDest.stream.getAudioTracks());
+    const m = mime(); rec = new MediaRecorder(new MediaStream(tracks), m ? { mimeType: m, videoBitsPerSecond: 16e6 } : {});
+    chunks = []; rec.ondataavailable = e => e.data.size && chunks.push(e.data);
+    rec.onstop = () => done(new Blob(chunks, { type: (m || 'video/webm').split(';')[0] }), m.includes('mp4') ? 'mp4' : 'webm');
+    rec.start(250); t0 = performance.now();
+    timer = setInterval(() => { const s = (performance.now() - t0) / 1000; $('#recTime').textContent = '● ' + Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0'); }, 250);
+    update(); return true;
+  }
+  function stopRec() { if (!rec) return; const r = rec; rec = null; clearInterval(timer); $('#recTime').textContent = ''; r.stop(); update(); }
+  function done(blob, ext) {
+    const url = URL.createObjectURL(blob), name = `slot-demo-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.${ext}`;
+    const out = $('#recOut'); out.innerHTML = '';
+    const v = document.createElement('video'); v.src = url; v.controls = true; out.appendChild(v);
+    const meta = document.createElement('p'); meta.className = 'hint'; meta.textContent = `${cv.width}×${cv.height} ${ext.toUpperCase()}, ${(blob.size / 1048576).toFixed(1)} MB`; out.appendChild(meta);
+    if (downloads) {
+      const b = document.createElement('button'); b.className = 'primary'; b.textContent = 'Save video';
+      b.onclick = () => downloads.save({ filename: name, data: blob }).then(() => { meta.textContent += ' · saved'; }).catch(e => { meta.textContent += e && e.code === 'declined' ? ' · save cancelled' : ' · could not save'; });
+      out.appendChild(b);
+    } else { const a = document.createElement('a'); a.href = url; a.download = name; a.textContent = 'Download ' + name; out.appendChild(a); }
+  }
+  $('#rec').onclick = async () => {
+    if (rec) { G.autoplay = false; stopRec(); return; }
+    const mode = $('#recMode').value;
+    if (mode === 'manual') { startRec(); return; }
+    if (G.busy) return;
+    if (!startRec()) return;
+    await new Promise(r => setTimeout(r, 400));
+    if (mode === 'spin') await root.Game.play(); else await root.Game.playQueue();
+    await new Promise(r => setTimeout(r, 900));
+    stopRec();
+  };
+
+  /* ---------- status ---------- */
+  function update() {
+    $('#playQueue').textContent = G.autoplay ? 'Stop after this spin' : 'Play list';
+    $('#spin').disabled = G.busy;
+    $('#rec').classList.toggle('on', !!rec); $('#rec').textContent = rec ? '■ Stop' : '● Record';
+    renderQueue();
+  }
+  G.onChange = update;
+
+  $('#replaySplash').onclick = () => root.Splash && root.Splash.replay(root.Game.C);
+
+  root.Game.boot().then(() => {
+    ED_SYMS.forEach(id => { thumbs[id] = thumb(id); });
+    renderPalette(); renderEditor(); update(); fit();
+    const inf = G.assetInfo || { missing: [], loaded: 0 };
+    $('#assetInfo').textContent = `${inf.loaded} of ${inf.loaded + inf.missing.length} image files found in assets/. The rest use built-in placeholders.`;
+    $('#assetList').innerHTML = inf.missing.map(k => `<li>${k}: ${root.ASSET_MANIFEST.images[k]}</li>`).join('');
+  });
+  try { if (root.claude && root.claude.use) root.claude.use('downloads').then(d => { downloads = d; }).catch(() => {}); } catch (e) {}
+})(window);
+
+</script>
+<script>
+/* src/cheats.js */
+/*
+ * Cheats: force the next spin, or play a whole scenario.
+ *
+ *   C          open / close the cheat menu (drawn over the game, never in recordings)
+ *   F          next spin: 3 Scatters, free spins (random special symbol)
+ *   P          next spin: 3 Scatters, free spins with symbol 0 (top symbol) as the special symbol
+ *   4 / 5      4 or 5 Scatters (20x / 200x plus free spins)
+ *   E          free spin: the special symbol expands on 3 reels
+ *   T          free spin: the special symbol on all 5 reels
+ *   R          free spin: retrigger (+10)
+ *   1 / 2 / 3 / 6  NICE / BIG / MEGA / SUPERB win banner (real boards)
+ *   A          2 Scatters with anticipation, no trigger
+ *   X          single line win      M  several lines      W  Scatter as Wild in a win
+ *   N          no win               0  clear forced spins
+ *   Symbol win dropdown (in the menu): pick a symbol and 2-5 in a row, then Force next spin or Play now.
+ *   Space      spin
+ * Every cheat is a real outcome from the maths engine. Free spin cheats (E, T, R) used
+ * outside free spins play as a normal spin.
+ *
+ * Scenario links: ?scenario=<id> or #scenario-<id> loads and plays a scenario on open.
+ */
+(function (root) {
+  const Game = root.Game, G = Game.G, OUT = root.Director.OUTCOMES;
+  const $ = s => document.querySelector(s);
+  const T = (type, extra) => Object.assign({ type }, extra);
+
+  const SCENARIOS = [
+    { id: 'free-spins', label: 'Free spins', note: '3 Scatters, the special symbol pick, then 10 random free spins',
+      items: [T('trigger')] },
+    { id: 'top-free-spins', label: 'Free spins: top symbol expands', note: 'Top symbol as the special symbol; it expands on 3 reels, then on all 5',
+      items: [T('trigger', { special: 0 }), T('expand'), T('random'), T('expand5')] },
+    { id: 'expansions', label: 'Every expansion size', note: 'Symbol 1 special: expands on 2, 3 and 5 reels, with a retrigger',
+      items: [T('trigger', { special: 1 }), T('expand2'), T('expand'), T('retrigger'), T('expand5')] },
+    { id: 'retrigger', label: 'Free spins retrigger', note: '3 Scatters during free spins add 10 more',
+      items: [T('trigger'), T('random'), T('retrigger'), T('expand')] },
+    { id: 'all-banners', label: 'All win banners', note: 'NICE, BIG, MEGA and SUPERB from real boards, then 5 Scatters (200x)',
+      items: [T('nice'), T('big'), T('mega'), T('superb'), T('trigger5')] },
+    { id: 'max-win', label: 'Max win cap (5,500×)', note: 'Top symbol special on all 5 reels on every free spin until the cap ends the round',
+      items: [T('trigger', { special: 0 }), T('expand5'), T('expand5'), T('expand5'), T('expand5')] },
+    { id: 'base-tour', label: 'Base game tour', note: 'No win, line win, several lines, Scatter as Wild, 2-Scatter tease, Big banner',
+      items: [T('nowin'), T('small'), T('multi'), T('wildwin'), T('tease'), T('big')] }
+  ];
+
+  // key, outcome item, short label for the menu
+  const HOTKEYS = [
+    ['F', T('trigger'), 'Free spins'], ['P', T('trigger', { special: 0 }), 'Free spins, top symbol special'],
+    ['4', T('trigger4'), '4 Scatters'], ['5', T('trigger5'), '5 Scatters'],
+    ['E', T('expand'), 'Expand (3 reels)'], ['T', T('expand5'), 'Expand (5 reels)'], ['R', T('retrigger'), 'Retrigger'],
+    ['1', T('nice'), 'NICE banner'], ['2', T('big'), 'BIG banner'], ['3', T('mega'), 'MEGA banner'], ['6', T('superb'), 'SUPERB banner'],
+    ['A', T('tease'), '2 Scatters tease'], ['X', T('small'), 'Line win'], ['M', T('multi'), 'Several lines'],
+    ['W', T('wildwin'), 'Scatter as Wild'], ['N', T('nowin'), 'No win']
+  ];
+  const KEYMAP = Object.fromEntries(HOTKEYS.map(([k, t]) => [k.toLowerCase(), t]));
+  const label = t => (typeof t === 'string' ? (OUT[t] || { label: t }).label : root.Director.describe(t, Game.C));
+
+  /* ---------------- actions ---------------- */
+  function forceNext(type) {
+    const item = typeof type === 'string' ? { type, cheat: true } : Object.assign({ cheat: true }, type);
+    G.queue.unshift(item);
+    G.onChange();
+    note(`Next spin: ${label(item)}`);
+  }
+  // symbol win: the chosen symbol, len in a row (3-5), on the middle payline
+  const symWin = (sym, len) => ({ type: 'symwin', sym: Number(sym), len: Number(len) });
+  const symbolOptions = () => Object.entries(Game.C.symbolNames).filter(([k]) => k >= 0 && k <= 10).sort((a, b) => a[0] - b[0])
+    .map(([k, n]) => `<option value="${k}">${n}</option>`).join('');
+  function playScenario(id, opts = {}) {
+    const sc = SCENARIOS.find(s => s.id === id); if (!sc) { note(`Unknown scenario: ${String(id).slice(0, 40)}`); return false; }
+    G.queue = sc.items.map(it => Object.assign({ cheat: true }, it));
+    G.onChange();
+    note(`Scenario: ${sc.label}`);
+    if (opts.load) return true;
+    if (!G.busy) Game.playQueue(sc.items.length);
+    return true;
+  }
+  function clearForced() { G.queue = G.queue.filter(q => !q.cheat); G.onChange(); note('Forced spins cleared'); }
+
+  /* ---------------- UI: button, menu, next-spin chip (DOM over the canvas) ---------------- */
+  const wrap = $('#wrap');
+  const btn = document.createElement('button'); btn.className = 'cheat-btn'; btn.textContent = 'Cheats (C)'; btn.title = 'Cheat menu';
+  const menu = document.createElement('div'); menu.className = 'cheat-menu'; menu.hidden = true; menu.setAttribute('role', 'dialog'); menu.setAttribute('aria-label', 'Cheats');
+  const chip = document.createElement('div'); chip.className = 'cheat-chip'; chip.hidden = true;
+  const toast = document.createElement('div'); toast.className = 'cheat-toast';
+  wrap.append(btn, menu, chip, toast);
+
+  function note(msg) { toast.textContent = msg; toast.classList.add('show'); clearTimeout(note.t); note.t = setTimeout(() => toast.classList.remove('show'), 1800); }
+  function toggle(show = menu.hidden) { menu.hidden = !show; btn.classList.toggle('on', show); }
+  btn.onclick = () => toggle();
+
+  function linkFor(id) { return location.href.split(/[?#]/)[0] + '?scenario=' + id; }
+  function renderMenu() {
+    menu.innerHTML = `
+      <header><b>Cheats</b><span>Forced spins play before anything else. Space spins.</span><button class="x" aria-label="Close">✕</button></header>
+      <section><h4>Play a scenario</h4>
+        <div class="symrow"><select class="scsel" aria-label="Scenario"></select><button class="play sc-play">Play</button><button class="link sc-link" title="Copy a link that opens this scenario">Link</button></div>
+        <small class="scnote"></small></section>
+      <section><h4>Symbol win</h4>
+        <div class="symrow">
+          <select class="sym" aria-label="Symbol">${symbolOptions()}</select>
+          <select class="len" aria-label="In a row"><option value="2">2 in a row (premiums)</option><option value="3" selected>3 in a row</option><option value="4">4 in a row</option><option value="5">5 in a row</option></select>
+          <button class="sw-force">Force next spin</button><button class="play sw-now">Play now</button>
+        </div></section>
+      <section><h4>Force the next spin</h4><div class="keys"></div></section>
+      <footer><span class="pending"></span><button class="clear">Clear forced (0)</button></footer>
+      <p class="fine">Every cheat is a real board from the maths engine. Expand and retrigger cheats only act inside free spins.</p>`;
+    menu.querySelector('.x').onclick = () => toggle(false);
+    menu.querySelector('.clear').onclick = clearForced;
+    const pick = () => symWin(menu.querySelector('.sym').value, menu.querySelector('.len').value);
+    menu.querySelector('.sw-force').onclick = () => forceNext(pick());
+    menu.querySelector('.sw-now').onclick = () => { forceNext(pick()); if (!G.busy) { toggle(false); Game.play(); } };
+    const scsel = menu.querySelector('.scsel'), scnote = menu.querySelector('.scnote');
+    scsel.innerHTML = SCENARIOS.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
+    const cur = () => SCENARIOS.find(s => s.id === scsel.value);
+    const showNote = () => { scnote.textContent = cur().note; };
+    scsel.onchange = showNote; showNote();
+    menu.querySelector('.sc-play').onclick = () => { toggle(false); playScenario(cur().id); };
+    menu.querySelector('.sc-link').onclick = () => { const u = linkFor(cur().id); (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => note('Link copied'), () => note(u)); };
+    const keys = menu.querySelector('.keys');
+    HOTKEYS.forEach(([k, t, short]) => {
+      const b = document.createElement('button'); b.innerHTML = `<kbd>${k}</kbd>${short}`; b.title = label(t); b.onclick = () => forceNext(t);
+      keys.appendChild(b);
+    });
+    renderPending();
+  }
+  function renderPending() {
+    const n = G.queue.filter(q => q.cheat).length, next = G.queue[0];
+    const p = menu.querySelector('.pending'); if (p) p.textContent = n ? `${n} forced spin${n > 1 ? 's' : ''} queued` : 'No forced spins';
+    chip.hidden = !(next && next.cheat);
+    if (next && next.cheat) chip.textContent = `Next: ${label(next)}${n > 1 ? `  (+${n - 1} more)` : ''}`;
+  }
+  const prevChange = G.onChange;
+  G.onChange = () => { prevChange(); renderPending(); };
+
+  /* ---------------- demo panel: scenario list with Load / Play ---------------- */
+  const panelList = $('#scenarios');
+  if (panelList) {
+    panelList.innerHTML = `<div class="symrow"><select id="scPanelSel" aria-label="Scenario"></select></div>
+      <p class="hint" id="scPanelNote"></p>
+      <div class="row"><button class="ghost small" id="scPanelLoad" title="Put this scenario in the list (for recording)">Load into list</button><button class="small" id="scPanelPlay">Play</button></div>`;
+    const sel = $('#scPanelSel');
+    sel.innerHTML = SCENARIOS.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
+    const cur = () => SCENARIOS.find(s => s.id === sel.value);
+    const showNote = () => { $('#scPanelNote').textContent = cur().note; };
+    sel.onchange = showNote; showNote();
+    $('#scPanelLoad').onclick = () => playScenario(cur().id, { load: true });
+    $('#scPanelPlay').onclick = () => playScenario(cur().id);
+  }
+
+  /* ---------------- hotkeys ---------------- */
+  document.addEventListener('keydown', e => {
+    if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (k === 'c') { toggle(); return; }
+    if (k === 'escape') { toggle(false); return; }
+    if (k === '0') { clearForced(); return; }
+    if (KEYMAP[k]) { e.preventDefault(); forceNext(KEYMAP[k]); }
+  });
+
+  /* ---------------- scenario links ---------------- */
+  function fromUrl() {
+    const q = new URLSearchParams(location.search).get('scenario');
+    const h = (location.hash.match(/^#scenario-([a-z0-9-]+)$/) || [])[1];
+    return q || h;
+  }
+  root.Cheats = { SCENARIOS, HOTKEYS, forceNext, symWin, playScenario, clearForced, toggle };
+  renderMenu();
+  const want = fromUrl();
+  if (want) {
+    // wait for the game to finish loading its art and for the splash screen to leave
+    const t0 = Date.now(), go = () => ((G.assetInfo && !(root.Splash && root.Splash.active())) || Date.now() - t0 > 12000) ? setTimeout(() => playScenario(want), 800) : setTimeout(go, 100);
+    go();
+  }
+})(window);
+
+</script>
+</body>
+</html>
